@@ -2,6 +2,12 @@
 
 ![](adv05.png)
 
+## Build Dependencies
+
+To compile, you'll need `gcc` to compile `dat2c` which converts `.dat` files into `c` stuctures.
+
+For the TRS-80 binaries, you'll need the Small Device C Compiler (SDCC), which is free and open source, http://sdcc.sourceforge.net
+
 ## Building
 
 Example:
@@ -9,7 +15,8 @@ Example:
 
 Will build `adv01.dsk`, `adv01.cmd` and `adv01.cas`
 
-## Running
+
+## Running on emulators:
 
 Example, to run on model I, under DOS
 
