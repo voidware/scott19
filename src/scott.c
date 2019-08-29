@@ -37,7 +37,7 @@
 #include "utils.h"
 
 // by-pass RAM test
-#define SKIPxx
+#define SKIP
 
 static void peformRAMTest()
 {

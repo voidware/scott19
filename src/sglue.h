@@ -34,4 +34,5 @@ void Exit();
 void Fatal(const char *x);
 void ClearScreen(void);
 unsigned char RandomPercent(unsigned char n);
-void LineInput(char *buf, unsigned char sz);
+void LineInput(const char* prompt, char *buf, unsigned char sz);
+void emitTopLine(char* s);

@@ -37,7 +37,7 @@
 
 
 // store our own cursor position (do not use the OS location)
-static uint cursorPos;
+unsigned int cursorPos;
 
 // are we in 80 col mode?
 uchar cols80;
@@ -52,16 +52,15 @@ uchar TRSModel;
 uchar TRSMemory;
 uchar* TRSMemoryFail;
 
-// sidebar "screen" memory for 80 cols on 64
-static uchar sidebar[16*16];
-static uchar sidemode;
-
 // random number seed
 static uint seed;
 static uchar* oldVidRam;
 
 static uchar* OldStack;
 static uchar* NewStack;
+
+// point to scroll from (usually 0)
+unsigned int scrollPos;
 
 void pushVideo(uchar* a)
 {
@@ -87,35 +86,18 @@ void popVideo()
 static uint vidoff(char x, char y)
 {
     // calculate the video offset from the screen base for CHARACTER pos (x,y)
-    // for 64 col mode, x >= 64 will offset into `sidebar' ram and set
-    // `sidemode'
     uint a;
-    sidemode = 0;
 
     a = (uint)y<<6;
     if (cols80) a += (uint)y<<4;
-    else
-    {
-        if (x >= 64)
-        {
-            x -= 64;
-            a = ((uint)y<<4);
-            sidemode = 1;
-        }
-    }
     return a + x;
 }
 
-static uchar* vidaddrfor(uint a)
+uchar* vidaddrfor(uint a)
 {
     // find the video ram address for offset `a'
-    if (sidemode) return sidebar + a; // in the sidebar, model <= 3
-    else
-    {
-        // actual video ram
-        if (a >= VIDSIZE && !cols80 || a >= VIDSIZE80) return 0;
-        return vidRam + a;
-    }
+    if (a >= VIDSIZE && !cols80 || a >= VIDSIZE80) return 0;
+    return vidRam + a;
 }
 
 uchar* vidaddr(char x, char y)
@@ -145,7 +127,7 @@ void lastLine()
     }
 }
 
-void nextLine()
+static void nextLine()
 {
     uint a = cursorPos;
     if (cols80)
@@ -159,7 +141,7 @@ void nextLine()
         if (a >= VIDSIZE80)
         {
             // scroll
-            memmove(VIDRAM80, VIDRAM80 + 80, 23*80);
+            memmove(VIDRAM80, VIDRAM80 + 80, VIDSIZE80 - 80);
 
             // place at last line and clear line
             lastLine();
@@ -168,27 +150,26 @@ void nextLine()
     }
     else
     {
-        if (sidemode)
+        a = (a + 64) & ~63;  // start of next line
+        if (a >= VIDSIZE)
         {
-            // next line
-            // NB: no test for overflow test or scrolling on sidebar
-            a = (a + 16) & ~15;
-        }
-        else
-        {
-            a = (a + 64) & ~63;  // start of next line
-            if (a >= VIDSIZE)
-            {
-                // scroll
-                memmove(VIDRAM, VIDRAM + 64, 15*64);
-                
-                // place at last line and clear line
-                lastLine();
-                return;
-            }
+            // scroll
+            char* p = VIDRAM + scrollPos;
+            memmove(p, p + 64, VIDSIZE - 64 - scrollPos);
+            
+            // place at last line and clear line
+            lastLine();
+            return;
         }
     }
     cursorPos = a;
+}
+
+static void clearLine()
+{
+    uint a = cursorPos;
+    uint b = (a + 64) & ~63;  // start of next line    
+    memset(vidaddrfor(a), ' ', b - a);
 }
 
 void outchar(char c)
@@ -203,6 +184,7 @@ void outchar(char c)
     }
     else if (c == '\n')
     {
+        clearLine();
         nextLine();
         return;
     }
@@ -231,14 +213,7 @@ void setcursor(char x, char y)
 
 void clsc(uchar c)
 {
-    if (cols80)
-        memset(vidRam, c, VIDSIZE80);
-    else
-    {
-        memset(vidRam, c, VIDSIZE);
-        memset(sidebar, c, sizeof(sidebar));
-    }
-
+    memset(vidRam, c, (cols80 ? VIDSIZE80 : VIDSIZE));
     setcursor(0,0);
     setWide(0);
 }

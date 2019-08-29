@@ -50,6 +50,7 @@ void printfat(uchar x, uchar y, const char* fmt, ...);
 uchar getline2(char* buf, uchar nmax);
 void lastLine();
 uchar* vidaddr(char x, char y);
+uchar* vidaddrfor(uint a);
 uchar ramTest(uchar a, uchar n);
 
 typedef void (*IdleHandler)(uchar);
@@ -67,6 +68,7 @@ extern uchar TRSModel;
 extern uchar TRSMemory;
 extern uchar* TRSMemoryFail;
 extern uchar cols80;
-
+extern unsigned int scrollPos;
+extern unsigned int cursorPos;
 
 

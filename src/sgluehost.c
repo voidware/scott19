@@ -68,15 +68,18 @@ unsigned char RandomPercent(unsigned char n)
 	return(0);
 }
 
-void LineInput(char *buf, unsigned char sz)
+void LineInput(const char* prompt, char *buf, unsigned char sz)
 {
+    Output("\n");
+    Output(prompt);
     fgets(buf, sz, stdin);
 }
 
-void main(int argc, char *argv[])
+void emitTopLine(char* s) { Output(s); }
+
+int main(int argc, char *argv[])
 {
 	FILE *f;
-	int vb,no;
 
 #ifdef GAME
     ;
@@ -111,6 +114,7 @@ void main(int argc, char *argv[])
     extern void rungame();
     rungame();
 
+    return 0;
 }
 
 

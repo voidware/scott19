@@ -7,6 +7,8 @@
 #define DESTROYED	0		/* Destroyed */
 #define DARKBIT		15
 #define LIGHTOUTBIT	16		/* Light gone out */
+
+typedef unsigned char uchar;
  
 typedef struct
 {
@@ -18,7 +20,7 @@ typedef struct
  	short MaxCarry;
  	short PlayerRoom;
  	short Treasures;
- 	short WordLength;
+ 	uchar WordLength;
  	short LightTime;
  	short NumMessages;
  	short TreasureRoom;

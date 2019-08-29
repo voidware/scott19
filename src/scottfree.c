@@ -27,6 +27,8 @@
 #define strncasecmp u_strnicmp
 #endif
 
+#define MAX_WORDLEN 16
+
 #define STRINGIZE_AUX(a) #a
 #define STRINGIZE(a) STRINGIZE_AUX(a)
 
@@ -44,21 +46,16 @@ Action *Actions;
 
 //Tail GameTail;
 int LightRefill;
-char NounText[16];
+char NounText[MAX_WORDLEN];
 int Counters[16];	/* Range unknown */
 int CurrentCounter;
 int SavedRoom;
 int RoomSaved[16];	/* Range unknown */
-//int DisplayUp;		/* Curses up */
-//WINDOW *Top,*Bottom;
 int Redraw = 1;		/* Update item window */
 //int Options;		/* Option flags set */
-//int Width;		/* Terminal width */
-//int TopHeight;		/* Height of top window */
-//int BottomHeight;	/* Height of bottom window */
 
 
-#define TRS80_LINE	"<-------------------------------------------------------------->"
+#define TRS80_LINE	"<------------------------------------------------------------->\n"
 
 #define MyLoc	(GameHeader.PlayerRoom)
 #define Width   64
@@ -66,34 +63,36 @@ int Redraw = 1;		/* Update item window */
 unsigned long BitFlags=0;	/* Might be >32 flags - I haven't seen >32 yet */
 
 
+static uchar WordMatch(char* text, char* target)
+{
+    return strncasecmp(text,target,GameHeader.WordLength) == 0;
+}
+
 uchar CountCarried()
 {
-	int ct=0;
-	uchar n=0;
-	while(ct<=GameHeader.NumItems)
+    uchar n=0;
+	int ct;
+	for (ct = 0; ct<=GameHeader.NumItems; ++ct)
 	{
-		if(Items[ct].Location==CARRIED)
-			n++;
-		ct++;
+		if(Items[ct].Location==CARRIED) n++;
 	}
 	return(n);
 }
 
+#if 0
 char *MapSynonym(char *word)
 {
-	int n=1;
-	char *tp;
-	static char lastword[16];	/* Last non synonym */
-	while(n<=GameHeader.NumWords)
+	uchar n;
+	static char lastword[MAX_WORDLEN];	/* Last non synonym */
+    
+    for (n = 1; n <= GameHeader.NumWords; ++n)
 	{
-		tp=Nouns[n];
-		if(*tp=='*')
-			tp++;
-		else
-			strcpy(lastword,tp);
-		if(strncasecmp(word,tp,GameHeader.WordLength)==0)
-			return(lastword);
-		n++;
+		char* tp=Nouns[n];
+        
+		if(*tp=='*') tp++;
+		else strcpy(lastword,tp);
+
+        if (WordMatch(word, tp)) return lastword;
 	}
 	return(NULL);
 }
@@ -101,19 +100,35 @@ char *MapSynonym(char *word)
 int MatchUpItem(char *text, int loc)
 {
 	char *word=MapSynonym(text);
-	int ct=0;
+	int ct;
 	
-	if(word==NULL)
-		word=text;
+	if(word==NULL) word=text;
 	
-	while(ct<=GameHeader.NumItems)
+	for (ct = 0; ct<=GameHeader.NumItems; ++ct)
 	{
-		if(Items[ct].AutoGet && Items[ct].Location==loc &&
-			strncasecmp(Items[ct].AutoGet,word,GameHeader.WordLength)==0)
+		if(Items[ct].Location==loc &&
+           Items[ct].AutoGet &&
+           WordMatch(word, Items[ct].AutoGet))
 			return(ct);
-		ct++;
 	}
 	return(-1);
+}
+#endif
+
+int MatchItem(int no, uchar loc)
+{
+    assert(no >= 0);
+    char* nt = Nouns[no];
+
+    int ct;
+    for (ct = 0; ct<=GameHeader.NumItems; ++ct)
+	{
+		if(Items[ct].Location==loc &&
+           Items[ct].AutoGet &&
+           WordMatch(nt, Items[ct].AutoGet))
+			return(ct);
+	}
+    return -1;
 }
 
 #ifdef DAT_FILES
@@ -123,7 +138,7 @@ char *ReadString(FILE *f)
 	char *t;
 	int c,nc;
 	int ct=0;
-oops:	do
+	do
 	{
 		c=fgetc(f);
 	}
@@ -172,6 +187,7 @@ void LoadDatabase(FILE *f, int loud)
 		Fatal("Invalid database(bad header)");
 
     assert(ni < 256);
+    assert(nw < 256);
     
 	GameHeader.NumItems=ni;
 	Items=(Item *)malloc(sizeof(Item)*(ni+1));
@@ -455,30 +471,31 @@ void Look()
             if(r->Exits[c])
             {
                 if (!f++) Output("\n   Some obvious exits are: ");
-                else Output(", ");
+                else Output(" ");
                 Output(ExitNames[c]);
             }
         }
         if (f) Output("\n");
     }
-    Output(TRS80_LINE);
+    emitTopLine(TRS80_LINE);
 }
+
 
 int WhichWord(char *word, char **list)
 {
-	int n=1;
-	int ne=1;
-	char *tp;
-	if (*word) while(ne<=GameHeader.NumWords)
-	{
-		tp=list[ne];
-		if(*tp=='*')
-			tp++;
-		else
-			n=ne;
-		if(strncasecmp(word,tp,GameHeader.WordLength)==0)
-			return(n);
-		ne++;
+    // lookup a word from a list
+	if (*word)
+    {
+        uchar ne;
+        int n;
+        for (ne = 1; ne<=GameHeader.NumWords; ++ne)
+        {
+            char* tp=list[ne];
+            if(*tp=='*') tp++;
+            else n = ne;
+
+            if (WordMatch(word, tp)) return n;
+        }
 	}
 	return(-1);
 }
@@ -544,20 +561,16 @@ static const char* getword(char* buf, const char* s)
 void GetInput(int* vb,int* no)
 {
 	char buf[100];
-	char verb[16],noun[16];
+	char verb[MAX_WORDLEN],noun[MAX_WORDLEN];
 	int vc,nc;
 	do
 	{
-		do
-		{
-			Output("\n  -------> Tell me what to do? ");
+            do
+            {
+                LineInput("  -------> Tell me what to do? ", buf, sizeof(buf));
 
-            LineInput(buf, sizeof(buf));
-			//OutReset();
-
-            getword(noun, getword(verb, buf));
+                getword(noun, getword(verb, buf));
             
-            //printf("DEBUG '%s' '%s'\n", verb, noun);
         }
         while (!*verb);
 
@@ -575,7 +588,9 @@ void GetInput(int* vb,int* no)
 				case 'i':strcpy(verb,"INV");break;
 			}
 		}
+        
 		nc=WhichWord(verb,Nouns);
+        
 		/* The Scott Adams system has a hack to avoid typing 'go' */
 		if(nc>=1 && nc <=6)
 		{
@@ -586,15 +601,20 @@ void GetInput(int* vb,int* no)
 			vc=WhichWord(verb,Verbs);
 			nc=WhichWord(noun,Nouns);
 		}
+        
 		*vb=vc;
 		*no=nc;
+        
 		if(vc==-1)
 		{
-			Output("You use word(s) I don't know!");
+			Output("You use word(s) I don't know!\n");
 		}
 	}
 	while(vc==-1);
 	strcpy(NounText,noun);	/* Needed by GET/DROP hack */
+
+    //printf("DEBUG '%s' (%d) '%s' (%d)\n", verb, vc, noun, nc);
+    
 }
 
 #if 0
@@ -632,7 +652,7 @@ void LoadGame(char *name)
 	short DarkFlag;
 	if(f==NULL)
 	{
-		Output("Unable to restore game.");
+		Output("Unable to restore game.\n");
 		return;
 	}
 	for(ct=0;ct<16;ct++)
@@ -790,11 +810,10 @@ int PerformLine(int ct)
 			case 52:
 				if(CountCarried()==GameHeader.MaxCarry)
 				{
-					//if(Options&YOUARE)
 					#ifdef YOUARE
-						Output("You are carrying too much. ");
+						Output("You are carrying too much.\n");
 					#else
-						Output("I've too much to carry! ");
+						Output("I've too much to carry!\n");
 					#endif
 					break;
 				}
@@ -892,7 +911,6 @@ doneit:				Output("The game is now over.\n");
 			{
 				int ct=0;
 				int f=0;
-				//if(Options&YOUARE)
 				#ifdef YOUARE
 					Output("You are carrying:\n");
 				#else
@@ -904,18 +922,14 @@ doneit:				Output("The game is now over.\n");
 					{
 						if(f==1)
 						{
-							//if (Options & TRS80_STYLE)
-								Output(". ");
-							//else
-							//	printf (" - ");
+                                                    Output(". ");
 						}
 						f=1;
 						Output(Items[ct].Text);
 					}
 					ct++;
 				}
-				if(f==0)
-					Output("Nothing");
+				if(f==0) Output("Nothing");
 				Output(".\n");
 				break;
 			}
@@ -1062,12 +1076,12 @@ int PerformActions(int vb,int no)
 	static int disable_sysfunc=0;	/* Recursion lock */
 	int d=BitFlags&(1<<DARKBIT);
 	
-	int ct=0;
+	int ct;
 	int fl;
 	int doagain=0;
 	if(vb==1 && no == -1 )
 	{
-		Output("Give me a direction too.");
+		Output("Give me a direction too.\n");
 		return(0);
 	}
 	if(vb==1 && no>=1 && no<=6)
@@ -1077,7 +1091,7 @@ int PerformActions(int vb,int no)
 		   Items[LIGHT_SOURCE].Location==CARRIED)
 		   	d=0;
 		if(d)
-			Output("Dangerous to move in the dark! ");
+			Output("Dangerous to move in the dark!\n");
 		nl=Rooms[MyLoc].Exits[no-1];
 		if(nl!=0)
 		{
@@ -1087,61 +1101,61 @@ int PerformActions(int vb,int no)
 		}
 		if(d)
 		{
-			//if(Options&YOUARE)
 			#ifdef YOUARE
-				Output("You fell down and broke your neck. ");
+				Output("You fell down and broke your neck.\n");
 			#else
-				Output("I fell down and broke my neck. ");
+				Output("I fell down and broke my neck.\n");
 			#endif
 			//wrefresh(Bottom);
 			//sleep(5);
 			//endwin();
 			Exit();
 		}
-		//if(Options&YOUARE)
+
 		#ifdef YOUARE
-			Output("You can't go in that direction. ");
+			Output("You can't go in that direction.\n");
 		#else
-			Output("I can't go in that direction. ");
+			Output("I can't go in that direction.\n");
 		#endif
 		return(0);
 	}
 	fl= -1;
-	while(ct<=GameHeader.NumActions)
+	for (ct = 0; ct<=GameHeader.NumActions;)
 	{
-		int vv,nv;
-		vv=Actions[ct].Vocab;
-		/* Think this is now right. If a line we run has an action73
-		   run all following lines with vocab of 0,0 */
-		if(vb!=0 && (doagain&&vv!=0))
-			break;
-		/* Oops.. added this minor cockup fix 1.11 */
-		if(vb!=0 && !doagain && fl== 0)
-			break;
-		nv=vv%150;
-		vv/=150;
-		if((vv==vb)||(doagain&&Actions[ct].Vocab==0))
-		{
-			if((vv==0 && RandomPercent(nv))||doagain||
-				(vv!=0 && (nv==no||nv==0)))
-			{
-				int f2;
-				if(fl== -1)
-					fl= -2;
-				if((f2=PerformLine(ct))>0)
-				{
-					/* ahah finally figured it out ! */
-					fl=0;
-					if(f2==2)
-						doagain=1;
-					if(vb!=0 && doagain==0)
-						return 0;
-				}
-			}
-		}
-		ct++;
-		if(Actions[ct].Vocab!=0)
-			doagain=0;
+            int vv,nv;
+            vv=Actions[ct].Vocab;
+            /* Think this is now right. If a line we run has an action73
+               run all following lines with vocab of 0,0 */
+            if(vb!=0 && (doagain&&vv!=0))
+                break;
+
+            /* Oops.. added this minor cockup fix 1.11 */
+            if(vb!=0 && !doagain && fl== 0)
+                break;
+
+            nv=vv%150;
+            vv/=150;
+            if((vv==vb)||(doagain&&Actions[ct].Vocab==0))
+            {
+                if((vv==0 && RandomPercent(nv))||doagain||
+                   (vv!=0 && (nv==no||nv==0)))
+                {
+                    int f2;
+                    if(fl== -1) fl= -2;
+                    if((f2=PerformLine(ct))>0)
+                    {
+                        /* ahah finally figured it out ! */
+                        fl=0;
+                        if(f2==2)
+                            doagain=1;
+                        if(vb!=0 && doagain==0)
+                            return 0;
+                    }
+                }
+            }
+            ct++;
+            if(Actions[ct].Vocab!=0)
+                doagain=0;
 	}
 	if(fl!=0 && disable_sysfunc==0)
 	{
@@ -1149,130 +1163,126 @@ int PerformActions(int vb,int no)
 		if(Items[LIGHT_SOURCE].Location==MyLoc ||
 		   Items[LIGHT_SOURCE].Location==CARRIED)
 		   	d=0;
-		if(vb==10 || vb==18)
-		{
-			/* Yes they really _are_ hardcoded values */
-			if(vb==10)
-			{
-				if(strcasecmp(NounText,"ALL")==0)
-				{
-					int ct=0;
-					int f=0;
+        
+        /* Yes they really _are_ hardcoded values */
+        if(vb==10) // get
+        {
+            if (WordMatch(NounText, "all"))
+            {
+                int ct;
+                uchar f;
 					
-					if(d)
-					{
-						Output("It is dark.\n");
-						return 0;
-					}
-					while(ct<=GameHeader.NumItems)
-					{
-						if(Items[ct].Location==MyLoc && Items[ct].AutoGet!=NULL && Items[ct].AutoGet[0]!='*')
-						{
-							no=WhichWord(Items[ct].AutoGet,Nouns);
-							disable_sysfunc=1;	/* Don't recurse into auto get ! */
-							PerformActions(vb,no);	/* Recursively check each items table code */
-							disable_sysfunc=0;
-							if(CountCarried()==GameHeader.MaxCarry)
-							{
-								//if(Options&YOUARE)
-								#ifdef YOUARE
-									Output("You are carrying too much. ");
-								#else
-									Output("I've too much to carry. ");
-								#endif
-								return(0);
-							}
-						 	Items[ct].Location= CARRIED;
-						 	Redraw=1;
-						 	Output(Items[ct].Text);
-						 	Output(": O.K.\n");
-						 	f=1;
-						 }
-						 ct++;
-					}
-					if(f==0)
-						Output("Nothing taken.");
-					return(0);
-				}
-				if(no==-1)
-				{
-					Output("What?");
-					return(0);
-				}
-				if(CountCarried()==GameHeader.MaxCarry)
-				{
-					//if(Options&YOUARE)
-					#ifdef YOUARE
-						Output("You are carrying too much. ");
-					#else
-						Output("I've too much to carry. ");
-					#endif
-					return(0);
-				}
-				i=MatchUpItem(NounText,MyLoc);
-				if(i==-1)
-				{
-					//if(Options&YOUARE)
-					#ifdef YOUARE
-						Output("It is beyond your power to do that. ");
-					#else
-						Output("It's beyond my power to do that. ");
-					#endif
-					return(0);
-				}
-				Items[i].Location= CARRIED;
-				Output("O.K. ");
-				Redraw=1;
-				return(0);
-			}
-			if(vb==18)
-			{
-				if(strcasecmp(NounText,"ALL")==0)
-				{
-					int ct=0;
-					int f=0;
-					while(ct<=GameHeader.NumItems)
-					{
-						if(Items[ct].Location==CARRIED && Items[ct].AutoGet && Items[ct].AutoGet[0]!='*')
-						{
-							no=WhichWord(Items[ct].AutoGet,Nouns);
-							disable_sysfunc=1;
-							PerformActions(vb,no);
-							disable_sysfunc=0;
-							Items[ct].Location=MyLoc;
-							Output(Items[ct].Text);
-							Output(": O.K.\n");
-							Redraw=1;
-							f=1;
-						}
-						ct++;
-					}
-					if(f==0)
-						Output("Nothing dropped.\n");
-					return(0);
-				}
-				if(no==-1)
-				{
-					Output("What ? ");
-					return(0);
-				}
-				i=MatchUpItem(NounText,CARRIED);
-				if(i==-1)
-				{
-					//if(Options&YOUARE)
-					#ifdef YOUARE
-						Output("It's beyond your power to do that.\n");
-					#else
-						Output("It's beyond my power to do that.\n");
-					#endif
-					return(0);
-				}
-				Items[i].Location=MyLoc;
-				Output("O.K. ");
-				Redraw=1;
-				return(0);
-			}
-		}
+                if(d)
+                {
+                    Output("It is dark.\n");
+                    return 0;
+                }
+
+                f = 0;
+                for (ct = 0; ct <= GameHeader.NumItems; ++ct)
+                {
+                    if(Items[ct].Location==MyLoc && Items[ct].AutoGet!=NULL && Items[ct].AutoGet[0]!='*')
+                    {
+                        no=WhichWord(Items[ct].AutoGet,Nouns);
+                        disable_sysfunc=1;	/* Don't recurse into auto get ! */
+                        PerformActions(vb,no);	/* Recursively check each items table code */
+                        disable_sysfunc=0;
+                        if(CountCarried()==GameHeader.MaxCarry)
+                        {
+#ifdef YOUARE
+                            Output("You are carrying too much.\n");
+#else
+                            Output("I've too much to carry.\n");
+#endif
+                            return(0);
+                        }
+                        Items[ct].Location= CARRIED;
+                        Redraw=1;
+                        Output(Items[ct].Text);
+                        Output(": OK\n");
+                        f=1;
+                    }
+                }
+                if(f==0) Output("Nothing taken.\n");
+                return(0);
+            }
+            if(no==-1)
+            {
+                Output("What?\n");
+                return(0);
+            }
+            if(CountCarried()==GameHeader.MaxCarry)
+            {
+#ifdef YOUARE
+                Output("You are carrying too much.\n");
+#else
+                Output("I've too much to carry.\n");
+#endif
+                return(0);
+            }
+            //i=MatchUpItem(NounText,MyLoc);
+            i=MatchItem(no,MyLoc);
+            if(i==-1)
+            {
+#ifdef YOUARE
+                Output("It is beyond your power to do that.\n");
+#else
+                Output("It's beyond my power to do that.\n");
+#endif
+                return(0);
+            }
+            Items[i].Location= CARRIED;
+            Output("OK");
+            Redraw=1;
+            return(0);
+        }
+        else if(vb==18) // drop
+        {
+            if(strcasecmp(NounText,"ALL")==0)
+            {
+                int ct=0;
+                int f=0;
+                while(ct<=GameHeader.NumItems)
+                {
+                    if(Items[ct].Location==CARRIED && Items[ct].AutoGet && Items[ct].AutoGet[0]!='*')
+                    {
+                        no=WhichWord(Items[ct].AutoGet,Nouns);
+                        disable_sysfunc=1;
+                        PerformActions(vb,no);
+                        disable_sysfunc=0;
+                        Items[ct].Location=MyLoc;
+                        Output(Items[ct].Text);
+                        Output(": OK\n");
+                        Redraw=1;
+                        f=1;
+                    }
+                    ct++;
+                }
+                if(f==0)
+                    Output("Nothing dropped.\n");
+                return(0);
+            }
+            if(no==-1)
+            {
+                Output("What?\n");
+                return(0);
+            }
+            //i=MatchUpItem(NounText,CARRIED);
+            i=MatchItem(no,CARRIED);
+            if(i==-1)
+            {
+#ifdef YOUARE
+                Output("It's beyond your power to do that.\n");
+#else
+                Output("It's beyond my power to do that.\n");
+#endif
+                return(0);
+            }
+            Items[i].Location=MyLoc;
+            Output("OK");
+            Redraw=1;
+            return(0);
+        }
 	}
 	return(fl);
 }
@@ -1299,9 +1309,9 @@ void rungame()
 		GetInput(&vb,&no);
 		switch(PerformActions(vb,no))
 		{
-			case -1:Output("I don't understand your command. ");
+			case -1:Output("I don't understand your command.\n");
 				break;
-			case -2:Output("I can't do that yet. ");
+			case -2:Output("I can't do that yet.\n");
 				break;
 		}
 		/* Brian Howarth games seem to use -1 for forever */
@@ -1315,9 +1325,9 @@ void rungame()
 					Items[LIGHT_SOURCE].Location==MyLoc)
 				{
 #ifdef YOUARE
-                    Output("Your light has run out. ");
+                    Output("Your light has run out.\n");
 #else                    
-                    Output("Light has run out! ");
+                    Output("Light has run out!\n");
 #endif
 
 				}
@@ -1332,9 +1342,9 @@ void rungame()
 #if 1 // SCOTTLIGHT
                     Output("Light runs out in ");
                     OutputNumber(GameHeader.LightTime);
-                    Output(" turns. ");
+                    Output(" turns.\n");
 #else
-                    if(GameHeader.LightTime%5==0) Output("Your light is growing dim. ");
+                    if(GameHeader.LightTime%5==0) Output("Your light is growing dim.\n");
 #endif
 				}
 			}

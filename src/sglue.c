@@ -35,6 +35,8 @@
 #include "sglue.h"
 #include "os.h"
 
+/* These functions "glue" scottfree to trs-80 implementations */
+
 void Output(const char* b)
 {
     outs(b);
@@ -57,7 +59,15 @@ void Fatal(const char *x)
 
 void ClearScreen(void)
 {
-    cls();
+    // clear top window 
+
+    char* b = vidaddrfor(scrollPos);
+    memset(VIDRAM, ' ', b - VIDRAM);
+
+    cursorPos = 0;
+    scrollPos = 0;
+
+
 }
 
 unsigned char RandomPercent(unsigned char n)
@@ -68,11 +78,25 @@ unsigned char RandomPercent(unsigned char n)
 	return(0);
 }
 
-void LineInput(char *buf, unsigned char sz)
+void LineInput(const char* prompt, char *buf, unsigned char sz)
 {
+    //outchar('\n');
+    outs(prompt);
+
     getline2(buf, sz);
     outchar('\n');
+}
 
+void emitTopLine(char* s)
+{
+    // emit the break line which separates the top and bottom, then
+    // set the scroll position to where we are.
+    outs(s);
+    scrollPos = cursorPos;
+
+    // cause the bottom window to scroll
+    setcursor(63, 15);
+    outchar('\n');
 }
 
 

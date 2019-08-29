@@ -2,6 +2,7 @@
 # Build Scott19
 # 
 
+SDCCDIR = i:/sdcc
 CC = sdcc
 AS = sdasz80
 LD = sdldz80
@@ -20,7 +21,8 @@ CFLAGS = -mz80 --std-sdcc11 --fsigned-char $(OPT) $(DEBUG) $(DEFS)
 
 
 ## set up your path to where the SDCC Z80 lib is
-LIBS = -l i:\sdcc\lib\z80\z80.lib
+LIBS = -l $(SDCCDIR)/lib/z80/z80.lib
+
 
 # DOS machine
 LDFLAGS = -mjwx -b _CODE=0x5200 $(LIBS)
@@ -48,7 +50,7 @@ all: adv05.dsk
 # make scott
 # will build host (pc) version of scott
 scott: sgluehost.c scottfree.c utils.c scottfree.h sglue.h
-	$(GCC) -DDAT_FILES -DHAVE_STRCASECMP -o scott sgluehost.c scottfree.c utils.c
+	$(GCC) -Wall -DDAT_FILES -DHAVE_STRCASECMP -o scott sgluehost.c scottfree.c utils.c
 
 dat2c: dat2c.c scottfree.c utils.c scottfree.h sglue.h
 	$(GCC) -DDAT_FILES -DHAVE_STRCASECMP -o dat2c dat2c.c scottfree.c utils.c

@@ -53,8 +53,8 @@ void Exit()
 
 void Fatal(const char *x)
 {
-	printf("%s.\n",x);
-	Exit();
+    printf("%s.\n",x);
+    Exit();
 }
 
 void ClearScreen(void)
@@ -65,15 +65,17 @@ void ClearScreen(void)
 unsigned char RandomPercent(unsigned char n)
 {
     unsigned int rv = rand() % 100;
-	if(rv<n)
-		return(1);
-	return(0);
+    if(rv<n)
+        return(1);
+    return(0);
 }
 
-void LineInput(char *buf, unsigned char sz)
+void LineInput(const char* prompt, char *buf, unsigned char sz)
 {
     fgets(buf, sz, stdin);
 }
+
+void emitTopLine(char* s) { Output(s); }
 
 FILE* out;
 
