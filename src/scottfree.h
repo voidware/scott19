@@ -15,15 +15,15 @@ typedef struct
  	short Unknown;
  	short NumItems;
  	short NumActions;
- 	short NumWords;		/* Smaller of verb/noun is padded to same size */
- 	short NumRooms;
+ 	uchar NumWords;		/* Smaller of verb/noun is padded to same size */
+ 	uchar NumRooms;
  	short MaxCarry;
- 	short PlayerRoom;
- 	short Treasures;
+ 	uchar PlayerRoom;
+ 	uchar Treasures;
  	uchar WordLength;
  	short LightTime;
  	short NumMessages;
- 	short TreasureRoom;
+ 	uchar TreasureRoom;
 } Header;
 
 typedef struct
@@ -74,5 +74,7 @@ extern char **Verbs;
 extern char **Nouns;
 extern char **Messages;
 #endif
+
+extern char lastChar;
 
 

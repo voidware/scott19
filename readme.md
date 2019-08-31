@@ -13,7 +13,11 @@ For the TRS-80 binaries, you'll need the Small Device C Compiler (SDCC), which i
 Edit `src/makefile` and change `SDCCDIR` to be the location where you have SDCC installed.
 
 Then (eg)
-`make adv05`
+```
+make clean
+make adv05.dsk
+```
+
 
 Will build `adv05.dsk`, `adv05.cmd` and `adv05.cas`
 

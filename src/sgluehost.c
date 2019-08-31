@@ -40,12 +40,16 @@ extern void LoadGame(char *name);
 
 void Output(const char* b)
 {
-    printf(b);
+    while (*b)
+    {
+        putchar(*b);
+        lastChar = *b++;
+    }
 }
 
 void Exit()
 {
-    printf("Game Over\n");
+    Output("Game Over\n");
     exit(0);
 }
 

@@ -33,20 +33,25 @@
 
 #include "defs.h"
 #include "sglue.h"
+#include "scottfree.h"
 #include "os.h"
 
 /* These functions "glue" scottfree to trs-80 implementations */
 
 void Output(const char* b)
 {
-    outs(b);
+    while (*b)
+    {
+        outchar(*b);
+        lastChar = *b++;
+    }
 }
 
 void Exit()
 {
     for (;;)
     {
-        printf("Game Over\n");
+        Output("Game Over\n");
         getkey();
     }
 }
@@ -81,7 +86,7 @@ unsigned char RandomPercent(unsigned char n)
 void LineInput(const char* prompt, char *buf, unsigned char sz)
 {
     //outchar('\n');
-    outs(prompt);
+    Output(prompt);
 
     getline2(buf, sz);
     outchar('\n');
@@ -91,7 +96,7 @@ void emitTopLine(char* s)
 {
     // emit the break line which separates the top and bottom, then
     // set the scroll position to where we are.
-    outs(s);
+    Output(s);
     scrollPos = cursorPos;
 
     // cause the bottom window to scroll

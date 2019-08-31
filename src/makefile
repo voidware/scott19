@@ -50,10 +50,10 @@ all: adv05.dsk
 # make scott
 # will build host (pc) version of scott
 scott: sgluehost.c scottfree.c utils.c scottfree.h sglue.h
-	$(GCC) -Wall -DDAT_FILES -DHAVE_STRCASECMP -o scott sgluehost.c scottfree.c utils.c
+	$(GCC) -Wall -DDAT_FILES -o scott sgluehost.c scottfree.c utils.c
 
 dat2c: dat2c.c scottfree.c utils.c scottfree.h sglue.h
-	$(GCC) -DDAT_FILES -DHAVE_STRCASECMP -o dat2c dat2c.c scottfree.c utils.c
+	$(GCC) -DDAT_FILES -o dat2c dat2c.c scottfree.c utils.c
 
 %.cas: %.ihx
 	../tools/mksys/mksys $< $@

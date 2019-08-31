@@ -33,59 +33,15 @@
 
 #include <ctype.h>
 
-signed char u_strnicmp(const char* s1, const char* s2, unsigned int n)
-{
-    signed char v = 0;
-    while (n) 
-    {
-        --n;
-
-        char c1 = tolower(*s1);
-        char c2 = tolower(*s2);
-
-        v = (c2 - c1);
-        if (v || !*s1) break;
-        ++s1;
-        ++s2;
-    }
-    return v;
-}
-
 signed char u_stricmp(const char* s1, const char* s2)
 {
     signed char v;
     for (;;)
     {
-        char c1 = tolower(*s1);
-        char c2 = tolower(*s2);
-        v = c2 - c1;
+        v = toupper(*s2) - toupper(*s1);
         if (v || !*s1) break;
         ++s1;
         ++s2;
     }
     return v;
 }
-
-
-#if 0
-unsigned char isqrt16(unsigned short a)
-{
-    // 16 bit version, valid up to 16383
-    unsigned short rem = 0;
-    unsigned char root = 0;
-    unsigned char i;
-    for (i = 0; i < 8; ++i)
-    {
-        root <<= 1;
-        rem = (rem << 2) + (a >> 14);
-        a <<= 2;
-        if (root < rem)
-        {
-            ++root;
-            rem -= root;
-            ++root;
-        }
-    }
-    return root >> 1;
-}
-#endif
