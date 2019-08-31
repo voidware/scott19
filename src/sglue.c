@@ -30,6 +30,7 @@
  */
 
 #include <stdio.h>
+#include <setjmp.h>
 
 #include "defs.h"
 #include "sglue.h"
@@ -47,13 +48,13 @@ void Output(const char* b)
     }
 }
 
+extern jmp_buf main_env;
+
 void Exit()
 {
-    for (;;)
-    {
-        Output("Game Over\n");
-        getkey();
-    }
+    resetGame();
+    scrollPos = 0;
+    longjmp(main_env, 1);
 }
 
 void Fatal(const char *x)
@@ -67,12 +68,10 @@ void ClearScreen(void)
     // clear top window 
 
     char* b = vidaddrfor(scrollPos);
-    memset(VIDRAM, ' ', b - VIDRAM);
+    memset(vidRam, ' ', b - vidRam);
 
     cursorPos = 0;
     scrollPos = 0;
-
-
 }
 
 unsigned char RandomPercent(unsigned char n)
@@ -100,8 +99,8 @@ void emitTopLine(char* s)
     scrollPos = cursorPos;
 
     // cause the bottom window to scroll
-    setcursor(63, 15);
-    outchar('\n');
+    lastLine();
+    nextLine(); // scroll
 }
 
 

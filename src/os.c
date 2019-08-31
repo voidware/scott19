@@ -43,7 +43,7 @@ unsigned int cursorPos;
 uchar cols80;
 
 // location of video ram 0x3c00 or 0xf800
-static uchar* vidRam;
+uchar* vidRam;
 
 // what model? (set up by initModel)
 uchar TRSModel;
@@ -70,17 +70,8 @@ void pushVideo(uchar* a)
 
 void popVideo()
 {
-    if (cols80)
-    {
-        memcpy(oldVidRam, vidRam, VIDSIZE80);
-    }
-    else
-    {
-        memcpy(oldVidRam, vidRam, VIDSIZE);
-    }
-
+    memcpy(oldVidRam, vidRam, (cols80 ? VIDSIZE80 : VIDSIZE));
     vidRam = oldVidRam;
-         
 }
 
 static uint vidoff(char x, char y)
@@ -112,65 +103,87 @@ void outcharat(char x, char y, uchar c)
     *vidaddr(x,y) = c;
 }
 
-void lastLine()
-{
-    // put the cursor on the last line and clear it
-    if (cols80)
-    {
-        setcursor(0, 23);
-        memset(VIDRAM80 + 23*80, ' ', 80);
-    }
-    else
-    {
-        setcursor(0, 15);
-        memset(VIDRAM + 15*64, ' ', 64);
-    }
-}
 
-static void nextLine()
+static uint nextLinePos()
 {
+    // calculate the next line from the current cursor pos
     uint a = cursorPos;
     if (cols80)
     {
         // bump a to the next multiple of 80
+
+        /*
         uint v = 80;
         if (a >= 800) v += 800;  // skip around half
         while (v <= a) v += 80; // until next line
         a = v;
+        */
 
-        if (a >= VIDSIZE80)
-        {
-            // scroll
-            memmove(VIDRAM80, VIDRAM80 + 80, VIDSIZE80 - 80);
-
-            // place at last line and clear line
-            lastLine();
-            return;
-        }
+        uchar q = a/80;
+        a = (q + 1)*80;
     }
     else
     {
         a = (a + 64) & ~63;  // start of next line
-        if (a >= VIDSIZE)
-        {
-            // scroll
-            char* p = VIDRAM + scrollPos;
-            memmove(p, p + 64, VIDSIZE - 64 - scrollPos);
-            
-            // place at last line and clear line
-            lastLine();
-            return;
-        }
     }
-    cursorPos = a;
+    return a;
 }
 
 static void clearLine()
 {
+    // clear from current cursor pos to end of line
     uint a = cursorPos;
-    uint b = (a + 64) & ~63;  // start of next line    
+    uint b = nextLinePos();
     memset(vidaddrfor(a), ' ', b - a);
 }
+
+void lastLine()
+{
+    // put the cursor on the last line 
+    if (cols80)
+    {
+        setcursor(0, 23);
+    }
+    else
+    {
+        setcursor(0, 15);
+    }
+}
+
+void nextLine()
+{
+    uchar sc;
+
+    char* p = vidRam + scrollPos;
+    cursorPos = nextLinePos();
+
+    if (cols80)
+    {
+        sc = (cursorPos >= VIDSIZE80);
+        if (sc)
+        {
+            // scroll
+            memmove(p, p + 80, VIDSIZE80 - 80 - scrollPos);
+        }
+    }
+    else
+    {
+        sc = (cursorPos >= VIDSIZE);
+        if (sc)
+        {
+            // scroll
+            memmove(p, p + 64, VIDSIZE - 64 - scrollPos);
+        }
+    }
+
+    if (sc)
+    {
+        // place at last line and clear line
+        lastLine();
+        clearLine();
+    }
+}
+
 
 void outchar(char c)
 {
@@ -214,7 +227,7 @@ void setcursor(char x, char y)
 void clsc(uchar c)
 {
     memset(vidRam, c, (cols80 ? VIDSIZE80 : VIDSIZE));
-    setcursor(0,0);
+    cursorPos = 0;
     setWide(0);
 }
 
@@ -263,6 +276,19 @@ static uchar ramAt(uchar* p) __naked
         ld   l,#1       // return result if ok
         ret  z          // return if ok
         dec  l          // return 0 if bad
+        ret
+    __endasm;
+}
+
+char* getHigh() __naked
+{
+    // put stack back to original
+    // ASSUME we are called from main
+    __asm
+        ld  hl,#0
+        ld  b,h
+        ld  a,#100 // select HIGH
+        RST 0x28   // @HIGH@ -> hl
         ret
     __endasm;
 }
@@ -585,7 +611,7 @@ uchar* alloca(uint a)
 
 void initModel()
 {
-    uchar* rp = 0x4000;
+    uchar* rp = (uchar*)0x4000;
     
     cols80 = 0;
     vidRam = VIDRAM;
@@ -598,24 +624,31 @@ void initModel()
 
     if (TRSModel >= 4)
     {
+        char* h = getHigh();
+        
         cols80 = 1;
         vidRam = VIDRAM80;
         
         outPort(0x84, 0x86); // M4 map, 80cols, page 1
         setSpeed(0); // slow (for now..)
         
-        TRSMemory = 16;
-    }
+        TRSMemory = 64;
 
-    // how much RAM do we have?
-    for (;;)
+        // m4 0xf400 - vidram is keyboard area
+        NewStack = 0xF400; 
+        if (NewStack > h) NewStack = h;
+    }
+    else
     {
-        TRSMemory += 16;
-        rp += 0x4000;
-        if (!ramAt(rp)) break;
+        // how much RAM do we have?
+        for (;;)
+        {
+            TRSMemory += 16;
+            rp += 0x4000;
+            if (!ramAt(rp)) break;
+        }
+        NewStack = rp;
     }
-
-    NewStack = rp;
 }
 
 void setStack() __naked
@@ -641,6 +674,9 @@ void revertStack() __naked
         jp (hl)
     __endasm;
 }
+
+
+
 
 void srand(uint v)
 {

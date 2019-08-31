@@ -44,11 +44,14 @@ int LightRefill;
 char NounText[MAX_WORDLEN];
 int Counters[16];   /* Range unknown */
 int CurrentCounter;
-int SavedRoom;
-int RoomSaved[16];  /* Range unknown */
+uchar SavedRoom;
+uchar RoomSaved[16];  /* Range unknown */
 int Redraw = 1;     /* Update item window */
 //int Options;      /* Option flags set */
 char lastChar;
+
+uchar startRoom;
+uchar startLightTime;
 
 #define TRS80_LINE  "<------------------------------------------------------------->\n"
 
@@ -57,6 +60,17 @@ char lastChar;
 
 unsigned long BitFlags=0;   /* Might be >32 flags - I haven't seen >32 yet */
 
+void resetGame()
+{
+    BitFlags = 0;
+    MyLoc = startRoom;
+    memset(Counters, 0, sizeof(Counters));
+    CurrentCounter = 0;
+    SavedRoom = 0;
+    memset(RoomSaved, 0, sizeof(RoomSaved));
+    GameHeader.LightTime = startLightTime;
+    Redraw = 1;
+}
 
 static uchar WordMatch(const char* s1, const char* s2)
 {
@@ -1176,7 +1190,10 @@ int PerformActions(uchar vb, uchar no)
                                 
 void rungame()                                
 {
-    //Look();
+
+    startRoom = MyLoc;
+    startLightTime = GameHeader.LightTime;
+
     while(1)
     {
         uchar vb, no;

@@ -31,13 +31,16 @@
 
 #include <stdio.h>
 #include <ctype.h>
+#include <setjmp.h>
 
 #include "defs.h"
 #include "os.h"
 #include "utils.h"
 
 // by-pass RAM test
-#define SKIP
+#define SKIPxx
+
+jmp_buf main_env;
 
 static void peformRAMTest()
 {
@@ -76,7 +79,6 @@ static char getSingleCommand(const char* msg)
 
 static void startGame()
 {
-
     cls();
     
     extern void rungame();
@@ -101,7 +103,7 @@ void _cls(uchar c)
     clsc(c);
 }
 
-#if 0
+#ifdef SKIP
 static void printStack()
 {
     int v;
@@ -116,22 +118,35 @@ static void mainloop()
     
     printf("TRS-80 Model %d (%dk RAM)\n", (int)TRSModel, (int)TRSMemory);
 
-    //printStack();
 
 #ifndef SKIP
     // When you run this on a real TRS-80, you'll thank this RAM test!
     peformRAMTest();
+#else
+    //printStack();
 #endif    
 
     outs("\nSCOTT 2019\n");
     getSingleCommand("Enter To Begin");
-    startGame();
+
+    for (;;)
+    {
+        if (!setjmp(main_env))
+        {
+            startGame();
+        }
+        else
+        {
+            char c = getSingleCommand("Play Again? (Y/N)");
+            if (c != 'Y') break;
+        }
+    }
 }
 
 int main()
 {
     initModel();
-
+    
     setStack();
     mainloop();
     revertStack();

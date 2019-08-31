@@ -66,6 +66,8 @@ typedef struct
 
 extern Header GameHeader;
 
+extern void resetGame();
+
 #ifndef GAME
 extern Item *Items;
 extern Action* Actions;
