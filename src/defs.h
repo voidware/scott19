@@ -61,7 +61,9 @@ typedef int int16;
 #define KBBASE80 ((uchar*)0xf400)
 
 // TRSDOS and LDOS location of HIGH$
-#define DOS_HIGH ((int*)0x4049)
+//#define DOS_HIGH ((int*)0x4049)
+
+#define ROM_CURSOR  ((char**)0x4020)
 
 #define ABSC(_c) ((char)(_c) < 0 ? -(_c) : (_c))
 #define ABS(_c) ((_c) < 0 ? -(_c) : (_c))

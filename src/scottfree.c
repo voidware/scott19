@@ -1109,7 +1109,8 @@ int PerformActions(uchar vb, uchar no)
             vv=Actions[ct].Vocab;
             /* Think this is now right. If a line we run has an action73
                run all following lines with vocab of 0,0 */
-            if(vb!=0 && (doagain&&vv!=0))
+            
+            if(vb && doagain && vv)
                 break;
 
             /* Oops.. added this minor cockup fix 1.11 */
@@ -1118,10 +1119,12 @@ int PerformActions(uchar vb, uchar no)
 
             nv=vv%150;
             vv/=150;
-            if((vv==vb)||(doagain&&Actions[ct].Vocab==0))
+            
+            if(vv == vb || (doagain && Actions[ct].Vocab==0))
             {
-                if((vv==0 && RandomPercent(nv))||doagain||
-                   (vv!=0 && (nv==no||nv==0)))
+                if ((vv!=0 && (nv==no||nv==0))
+                    || doagain
+                    || (vv==0 && RandomPercent(nv)))
                 {
                     int f2;
                     if(fl== -1) fl= -2;
@@ -1137,8 +1140,7 @@ int PerformActions(uchar vb, uchar no)
                 }
             }
             ct++;
-            if(Actions[ct].Vocab!=0)
-                doagain=0;
+            if(Actions[ct].Vocab!=0) doagain=0;
     }
     if(fl!=0 && disable_sysfunc==0)
     {

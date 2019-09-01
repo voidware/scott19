@@ -47,7 +47,7 @@ void revertStack();
 void outs(const char* s);
 void outsWide(const char* s);
 void printfat(uchar x, uchar y, const char* fmt, ...);
-uchar getline2(char* buf, uchar nmax);
+uchar getline(char* buf, uchar nmax);
 void lastLine();
 void nextLine();
 uchar* vidaddr(char x, char y);

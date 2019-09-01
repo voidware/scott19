@@ -35,6 +35,9 @@
 #include "defs.h"
 #include "os.h"
 
+// if we want to scan the keymatrix ourselves
+#define IMPLEMENT_SCAN
+#define IMPLEMENT_GETLINE
 
 // store our own cursor position (do not use the OS location)
 unsigned int cursorPos;
@@ -111,14 +114,6 @@ static uint nextLinePos()
     if (cols80)
     {
         // bump a to the next multiple of 80
-
-        /*
-        uint v = 80;
-        if (a >= 800) v += 800;  // skip around half
-        while (v <= a) v += 80; // until next line
-        a = v;
-        */
-
         uchar q = a/80;
         a = (q + 1)*80;
     }
@@ -282,8 +277,6 @@ static uchar ramAt(uchar* p) __naked
 
 char* getHigh() __naked
 {
-    // put stack back to original
-    // ASSUME we are called from main
     __asm
         ld  hl,#0
         ld  b,h
@@ -373,37 +366,7 @@ static void setSpeed(uchar fast)
     }
 }
 
-static uchar readKeyRowCol(uchar* rowcol)
-{
-    uchar r = 1;
-    uchar i;
-    static uchar kbrows[8];
-    
-    for (i = 0; i < 8; ++i)
-    {
-        uchar v = cols80 ? *(KBBASE80 + r) : *(KBBASE + r);
-        r <<= 1;
-        
-        if (v != kbrows[i])
-        {
-            kbrows[i] = v;
-
-            if (v) // press not release
-            {
-                *rowcol = i; // row
-            
-                rowcol[1] = 0;
-                while (v > 1)
-                {
-                    v >>= 1;
-                    ++rowcol[1];
-                }
-                return 1;
-            }
-        }
-    }
-    return 0;
-}
+#ifdef IMPLEMENT_SCAN
 
 static const char keyMatrix[] =
 {
@@ -417,6 +380,81 @@ static const char keyMatrix[] =
     'Z', 'Z', 'Z', 'Z', 'Z', 'Z', 'Z', 'Z', 
 };
 
+static uchar readKeyRowCol(uchar* row, uchar* col)
+{
+    uchar r = 1;
+    uchar i;
+    uchar hit = 0;
+    
+    static uchar kbrows[8];
+
+    for (i = 0; i < 8; ++i)
+    {
+        uchar v = cols80 ? *(KBBASE80 + r) : *(KBBASE + r);
+        r <<= 1;
+
+        uchar t = v ^ kbrows[i];
+
+        if (t)
+        {
+            kbrows[i] = v;
+
+            // press not release            
+            if (v & t)
+            {
+                hit = 1;
+                
+                *row = i;
+                *col = 0;
+                
+                while (t > 1)
+                {
+                    t >>= 1;
+                    ++*col;
+                }
+            }
+        }
+    }
+
+    return hit;
+}
+
+
+char scanKey()
+{
+    // return key if pressed or 0
+    uchar row, col;
+
+    // ignore shift & control
+    return (readKeyRowCol(&row, &col) && row != 7) ? keyMatrix[row*8 + col] : 0;
+}
+
+#else // IMPLEMENT_SCAN
+
+// otherwise call the ROM to scan a key
+
+char scanKey()
+{
+    // return key pressed or 0 if none
+
+    if (TRSModel >= 4)
+    {
+    __asm
+        ld    a,#8      // @KBD
+        RST   0x28      // uses DE
+        ld    l,a
+    __endasm;
+    }
+    else
+    {
+      __asm
+        call    0x2b
+        ld      l,a
+    __endasm;
+    }
+}
+
+#endif // IMPLEMENT_SCAN
 
 static uchar keyIdleState;
 static IdleHandler idleHandler;
@@ -446,25 +484,6 @@ static void _keyIdle()
     }
 }
 
-char scanKey()
-{
-    // return key if pressed or 0
-    uchar rc[2];
-    
-    // ignore shift & control
-    return (readKeyRowCol(rc) && rc[0] != 7) ? keyMatrix[rc[0]*8 + rc[1]] : 0;
-}
-
-void pause()
-{
-    // delay, unless key pressed
-    int c = 1000;  // XX scale delay by machine speed
-    while (--c)
-    {
-        if (scanKey()) return;
-    }
-}
-
 char getkey()
 {
     // wait for a key
@@ -485,6 +504,145 @@ char getkey()
         {
             _keyIdle();
         }
+    }
+}
+
+#ifdef IMPLEMENT_GETLINE
+uchar getline(char* buf, uchar nmax)
+{
+    // our own version of `getline' 
+    // the os version always prints the newline, but this one
+    // does not. This can be useful when we dont want the screen to scroll
+    // because of our input.
+    uchar pos = 0;
+    for (;;)
+    {
+        char c;
+
+        // emit prompt
+        vidRam[cursorPos] = '_';
+        
+        // wait for key
+        c = getkey();
+
+        if (c == '\b') // backspace
+        {
+            if (pos)
+            {
+                --pos;
+                outchar(c);
+            }
+        }
+        else 
+        {
+            if (pos < nmax)
+            {
+                buf[pos++] = c;
+                buf[pos] = 0; // maintain termination
+                outchar(c);
+            }
+            if (c == '\r') break;  // enter hit
+        }
+    }
+    return pos;
+}
+#else // IMPLEMENT_GETLINE
+
+// use ROM
+
+uchar rom4_getline(char* buf, uchar nmax) __naked
+{
+    // model 4 version
+    __asm
+        pop  bc     // ret
+        pop  hl     // buf
+        pop  de     // e = nmax
+        push de
+        push hl
+        push bc
+        ld   b,e    // nmax
+        ld   c,#0
+        ld   a,#9   // @KEYIN
+        RST  0x28
+        ld   l,b    // number typed
+        ret        
+    __endasm;
+}
+
+uchar rom_getline(char* buf, uchar nmax) __naked
+{
+    // emit prompt and handle backspace etc
+    __asm
+        pop  bc     // ret
+        pop  hl     // buf
+        pop  de     // e = nmax
+        push de
+        push hl
+        push bc
+        ld   b,e    // nmax
+        call 0x40
+        ld   l,b    // number typed
+        ret
+    __endasm;
+}
+
+static uchar c4row;
+static uchar c4col;
+static void setROMCursor()
+{
+    if (TRSModel >= 4)
+    {
+        c4row = cursorPos/80;
+        c4col = cursorPos - c4row*80;
+        
+        __asm
+            ld  a,#15   // @VDCTL
+            ld  b,#3    // set cursor
+            ld  hl,#_c4row
+            ld  d,(hl)
+            ld  hl,#_c4col
+            ld  e,(hl)
+            ex  de,hl
+            RST 0x28
+        __endasm;
+    }
+    else
+    {
+        // set the ROM cursor to our cursor
+        *ROM_CURSOR = VIDRAM + cursorPos;
+    }
+}
+
+uchar getline(char* buf, uchar nmax)
+{
+    //printf("CURSOR %04X\n", (int)*ROM_CURSOR);
+    setROMCursor();
+
+    uchar n;
+
+    if (TRSModel >= 4)
+    {
+        n = rom4_getline(buf, nmax);
+    }
+    else
+    {
+        n = rom_getline(buf, nmax);
+    }
+
+    // terminate
+    buf[n] = 0;
+    return n;
+}
+
+#endif // IMPLEMENT_GETLINE
+
+void pause()
+{
+    // delay, unless key pressed
+    int c = 1000;  // XX scale delay by machine speed
+    while (--c)
+    {
+        if (scanKey()) return;
     }
 }
 
@@ -526,45 +684,6 @@ void printfat(uchar x, uchar y, const char* fmt, ...)
     va_end(args);
 }
 
-
-uchar getline2(char* buf, uchar nmax)
-{
-    // our own version of `getline' 
-    // the os version always prints the newline, but this one
-    // does not. This can be useful when we dont want the screen to scroll
-    // because of our input.
-    uchar pos = 0;
-    for (;;)
-    {
-        char c;
-
-        // emit prompt
-        vidRam[cursorPos] = '_';
-        
-        // wait for key
-        c = getkey();
-
-        if (c == '\b') // backspace
-        {
-            if (pos)
-            {
-                --pos;
-                outchar(c);
-            }
-        }
-        else 
-        {
-            if (pos < nmax)
-            {
-                buf[pos++] = c;
-                buf[pos] = 0; // maintain termination
-                outchar(c);
-            }
-            if (c == '\r') break;  // enter hit
-        }
-    }
-    return pos;
-}
 
 
 void setWide(uchar v)
@@ -617,9 +736,6 @@ void initModel()
     vidRam = VIDRAM;
     TRSMemory = 0;
 
-    // leave interrupts off in all cases for now...
-    //clobber_rti();
-
     TRSModel = getModel();
 
     if (TRSModel >= 4)
@@ -635,7 +751,7 @@ void initModel()
         TRSMemory = 64;
 
         // m4 0xf400 - vidram is keyboard area
-        NewStack = 0xF400; 
+        NewStack = (uchar*)0xF400; 
         if (NewStack > h) NewStack = h;
     }
     else

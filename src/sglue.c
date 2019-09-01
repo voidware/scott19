@@ -81,10 +81,12 @@ void ClearScreen(void)
 
 unsigned char RandomPercent(unsigned char n)
 {
-    unsigned int rv = rand16() % 100;
-	if(rv<n)
-		return(1);
-	return(0);
+    uchar r = 0;
+    if (n)
+    {
+        r = (rand16() % 100) < n;
+    }
+    return r;
 }
 
 void LineInput(const char* prompt, char *buf, unsigned char sz)
@@ -92,7 +94,7 @@ void LineInput(const char* prompt, char *buf, unsigned char sz)
     //outchar('\n');
     Output(prompt);
 
-    getline2(buf, sz);
+    getline(buf, sz);
     outchar('\n');
 }
 
@@ -108,7 +110,15 @@ void emitTopLine(char* s)
     nextLine(); // scroll
 }
 
-void Intro() { Output(INTRO_TEXT); }
+void Intro()
+{
+#if 0
+    setWide(1);
+    outsWide(INTRO_TEXT);
+#else
+    Output(INTRO_TEXT);
+#endif
+}
 
 
 

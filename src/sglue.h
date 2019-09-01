@@ -38,10 +38,12 @@ void LineInput(const char* prompt, char *buf, unsigned char sz);
 void emitTopLine(char* s);
 void Intro();
 
-#define INTRO_TEXT "Scott Free, A Scott Adams game driver in C.\n" \
-    "Release 1.14\n" \
-    "(c) 1993,1994,1995 Swansea University Computer Society.\n" \
-    "Distributed under the GNU software license\n\n"
+#define INTRO_TEXT \
+    "\nScott Free, A Scott Adams game driver in C.\n" \
+    "Release 1.14, (c) 1993,1994,1995\n" \
+    "Swansea University Computer Society.\n" \
+    "Distributed under the GNU software license.\n" \
+    "Ported to the TRS-80 by Voidware 2019.\n\n"
 
 
 
