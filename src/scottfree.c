@@ -23,6 +23,7 @@
 #include "utils.h"
 
 #define MAX_WORDLEN 16
+#define MAX_SAVESIZE 512
 
 #define STRINGIZE_AUX(a) #a
 #define STRINGIZE(a) STRINGIZE_AUX(a)
@@ -39,7 +40,6 @@ Action *Actions;
 #include STRINGIZE(GAME)
 #endif
 
-//Tail GameTail;
 int LightRefill;
 char NounText[MAX_WORDLEN];
 int Counters[16];   /* Range unknown */
@@ -47,30 +47,17 @@ int CurrentCounter;
 uchar SavedRoom;
 uchar RoomSaved[16];  /* Range unknown */
 int Redraw = 1;     /* Update item window */
-//int Options;      /* Option flags set */
 char lastChar;
-
-uchar startRoom;
-uchar startLightTime;
+uchar pos;
+uchar Width = 64;
 
 #define TRS80_LINE  "<------------------------------------------------------------->\n"
 
 #define MyLoc   (GameHeader.PlayerRoom)
-#define Width   64
 
 unsigned long BitFlags=0;   /* Might be >32 flags - I haven't seen >32 yet */
+static char startSave[MAX_SAVESIZE];
 
-void resetGame()
-{
-    BitFlags = 0;
-    MyLoc = startRoom;
-    memset(Counters, 0, sizeof(Counters));
-    CurrentCounter = 0;
-    SavedRoom = 0;
-    memset(RoomSaved, 0, sizeof(RoomSaved));
-    GameHeader.LightTime = startLightTime;
-    Redraw = 1;
-}
 
 static uchar WordMatch(const char* s1, const char* s2)
 {
@@ -334,6 +321,12 @@ void LoadDatabase(FILE *f, int loud)
 }
 #endif // DAT_FILES
 
+void OutputWord(char* s)
+{
+    if (pos + strlen(s) > Width - 4) Output("\n");
+    Output(s);
+}
+
 void OutputNumber(int a)
 {
     char buf[16];
@@ -349,7 +342,6 @@ static const char *ExitNames[]=
 void Look()
 {
     uchar c,f;
-    uchar pos;
     
     ClearScreen();
 
@@ -383,30 +375,20 @@ void Look()
         {
             if(Items[c].Location==MyLoc)
             {
-                if(f==0)
+                if (!f++)
                 {
 #ifdef YOUARE
                     Output("\nYou can also see: ");
 #else
                     Output(" Visible Items:\n\n");
 #endif
-                    pos=16;
-                    f++;
                 }
                 else
                 {
                     Output(" ");
-                    pos += 1;
                 }
 
-                pos += strlen(Items[c].Text);
-                if (pos > Width-10)
-                {
-                    pos=0;
-                    Output("\n");
-                }
-                
-                Output(Items[c].Text);
+                OutputWord(Items[c].Text);
                 Output(".");
             }
         }
@@ -475,16 +457,16 @@ void GetInput(uchar* vb, uchar* no)
 
         if(*noun==0 && strlen(verb)==1)
         {
-            switch(tolower(*verb))
+            switch(toupper(*verb))
             {
-                case 'n':strcpy(verb,"NORTH");break;
-                case 'e':strcpy(verb,"EAST");break;
-                case 's':strcpy(verb,"SOUTH");break;
-                case 'w':strcpy(verb,"WEST");break;
-                case 'u':strcpy(verb,"UP");break;
-                case 'd':strcpy(verb,"DOWN");break;
+                case 'N':strcpy(verb,"NORTH");break;
+                case 'E':strcpy(verb,"EAST");break;
+                case 'S':strcpy(verb,"SOUTH");break;
+                case 'W':strcpy(verb,"WEST");break;
+                case 'U':strcpy(verb,"UP");break;
+                case 'D':strcpy(verb,"DOWN");break;
                 /* Brian Howarth interpreter also supports this */
-                case 'i':strcpy(verb,"INV");break;
+                case 'I':strcpy(verb,"INV");break;
             }
         }
         
@@ -514,6 +496,101 @@ void GetInput(uchar* vb, uchar* no)
 
     //printf("DEBUG '%s' (%d) '%s' (%d)\n", verb, vc, noun, nc);
 }
+
+void SaveBuf(char* b, int sz)
+{
+    uchar c;
+    int ct;
+    char* b0 = b;
+    for(c=0;c<16;c++) b += sprintf(b,"%d %d\n",Counters[c],RoomSaved[c]);
+    b += sprintf(b, "%ld %d %d %d %d\n",
+                 BitFlags,
+                 MyLoc,
+                 CurrentCounter,
+                 SavedRoom,
+                 GameHeader.LightTime);
+    
+    for(ct=0;ct<=GameHeader.NumItems;ct++)
+    {
+        b += sprintf(b,"%d\n",Items[ct].Location);
+    }
+
+    if (b - b0 >= sz)
+    {
+        Output("SaveBuf Too small! Need ");
+        OutputNumber((int)(b - b0));
+    }
+
+}
+
+static char* inb;
+
+static void skipL()
+{
+    while (*inb++ != '\n') ;
+}
+
+static void skipD()
+{
+    if (*inb == '-') ++inb;
+    while (isdigit(*inb)) ++inb;
+}
+
+static void skipS()
+{
+    while (isspace(*inb)) ++inb;
+}
+
+static int scanD()
+{
+    int v;
+    skipS();
+    v = atoi(inb);
+    skipD();
+    return v;
+}
+
+void LoadBuf(char* b)
+{
+    uchar c;
+    int ct;
+
+    inb = b;
+    
+    for(c=0;c<16;c++)
+    {
+        //sscanf(b,"%d %d\n",&t1, &t2);
+        Counters[c] = scanD();
+        RoomSaved[c] = scanD();
+        skipL();
+    }
+
+    BitFlags = atol(inb);
+    skipD();
+
+    /*
+    sscanf(b,"%ld %d %d %d %d\n",
+           &BitFlags,
+           &t1,
+           &t2,
+           &t3,
+           &t4);
+    */
+
+    MyLoc = scanD();
+    CurrentCounter = scanD();
+    SavedRoom = scanD();
+    GameHeader.LightTime = scanD();
+    skipL();
+        
+    for(ct=0;ct<=GameHeader.NumItems;ct++)
+    {
+        //sscanf(b,"%d\n",&t1);
+        Items[ct].Location=scanD();
+        skipL();
+    }
+}
+
 
 #if 0
 void SaveGame()
@@ -574,7 +651,16 @@ void LoadGame(char *name)
 
 void SaveGame()
 {
-    Output("TODO!\n");
+    char buf[MAX_SAVESIZE];
+    SaveBuf(buf, sizeof(buf));
+
+#if 0
+    printf("SAVE '%s'\n", buf);
+    LoadBuf(buf);
+    SaveBuf(buf, sizeof(buf));
+    printf("SAVE2 '%s'\n", buf);
+#endif    
+
 }
 
 void LoadGame(char* name)
@@ -805,25 +891,22 @@ doneit:             Output("The game is now over.\n");
             }
             case 66:
             {
-                int ct=0;
-                int f=0;
+                int ct;
+                uchar f=0;
+                
                 #ifdef YOUARE
                     Output("You are carrying:\n");
                 #else
                     Output("I am carrying the following:\n");
                 #endif
-                while(ct<=GameHeader.NumItems)
+                    
+                for (ct = 0; ct<=GameHeader.NumItems; ++ct)
                 {
                     if(Items[ct].Location==CARRIED)
                     {
-                        if(f==1)
-                        {
-                                                    Output(". ");
-                        }
-                        f=1;
-                        Output(Items[ct].Text);
+                        if (f++) Output(". ");
+                        OutputWord(Items[ct].Text);
                     }
-                    ct++;
                 }
                 if(f==0) Output("Nothing");
                 Output(".\n");
@@ -1190,10 +1273,9 @@ int PerformActions(uchar vb, uchar no)
                                 
 void rungame()                                
 {
+    SaveBuf(startSave, sizeof(startSave));
 
-    startRoom = MyLoc;
-    startLightTime = GameHeader.LightTime;
-
+    
     while(1)
     {
         uchar vb, no;
@@ -1254,4 +1336,11 @@ void rungame()
         }
     }    
 }
+
+void resetGame()
+{
+    LoadBuf(startSave);
+    Redraw = 1;
+}
+
 

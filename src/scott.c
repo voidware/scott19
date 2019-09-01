@@ -36,6 +36,7 @@
 #include "defs.h"
 #include "os.h"
 #include "utils.h"
+#include "sglue.h"
 
 // by-pass RAM test
 #define SKIPxx
@@ -82,6 +83,11 @@ static void startGame()
     cls();
     
     extern void rungame();
+    extern uchar Width;
+
+    // 64 is default
+    if (cols80) Width = 80;
+    
     rungame();
 }
 
@@ -126,7 +132,10 @@ static void mainloop()
     //printStack();
 #endif    
 
-    outs("\nSCOTT 2019\n");
+    outs("\nSCOTT 2019 Based on\n");
+    
+    Intro();
+    
     getSingleCommand("Enter To Begin");
 
     for (;;)

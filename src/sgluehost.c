@@ -40,10 +40,15 @@ extern void LoadGame(char *name);
 
 void Output(const char* b)
 {
-    while (*b)
+    char c;
+    for (;;)
     {
-        putchar(*b);
-        lastChar = *b++;
+        c = *b++;
+        if (!c) break;
+        putchar(c);
+        ++pos;
+        if (c == '\n') pos = 0;
+        lastChar = c;
     }
 }
 
@@ -80,6 +85,7 @@ void LineInput(const char* prompt, char *buf, unsigned char sz)
 }
 
 void emitTopLine(char* s) { Output(s); }
+void Intro() { Output(INTRO_TEXT); }
 
 int main(int argc, char *argv[])
 {
@@ -101,19 +107,15 @@ int main(int argc, char *argv[])
 		Exit(1);
 	}
 
+    LoadDatabase(f, 1);
 
-	LoadDatabase(f, 1);
-    
 	fclose(f);
 	if(argc==3) LoadGame(argv[2]);
 #endif
 
-    Output("Scott Free, A Scott Adams game driver in C.\n"
-        "Release 1.14, (c) 1993,1994,1995 Swansea University Computer Society.\n"
-        "Distributed under the GNU software license\n\n");
-
-
     srand(clock());
+
+    Intro();    
 
     extern void rungame();
     rungame();

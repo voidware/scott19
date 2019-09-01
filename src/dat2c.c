@@ -76,6 +76,8 @@ void LineInput(const char* prompt, char *buf, unsigned char sz)
 }
 
 void emitTopLine(char* s) { Output(s); }
+void Intro() { Output(INTRO_TEXT); }
+
 
 FILE* out;
 

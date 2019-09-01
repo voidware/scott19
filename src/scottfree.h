@@ -78,5 +78,7 @@ extern char **Messages;
 #endif
 
 extern char lastChar;
+extern uchar pos;
+extern uchar Width;
 
 

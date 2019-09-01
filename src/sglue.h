@@ -36,3 +36,13 @@ void ClearScreen(void);
 unsigned char RandomPercent(unsigned char n);
 void LineInput(const char* prompt, char *buf, unsigned char sz);
 void emitTopLine(char* s);
+void Intro();
+
+#define INTRO_TEXT "Scott Free, A Scott Adams game driver in C.\n" \
+    "Release 1.14\n" \
+    "(c) 1993,1994,1995 Swansea University Computer Society.\n" \
+    "Distributed under the GNU software license\n\n"
+
+
+
+

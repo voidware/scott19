@@ -41,10 +41,15 @@
 
 void Output(const char* b)
 {
-    while (*b)
+    char c;
+    for (;;)
     {
-        outchar(*b);
-        lastChar = *b++;
+        c = *b++;
+        if (!c) break;
+        outchar(c);
+        ++pos;
+        if (c == '\n') pos = 0;
+        lastChar = c;
     }
 }
 
@@ -102,6 +107,8 @@ void emitTopLine(char* s)
     lastLine();
     nextLine(); // scroll
 }
+
+void Intro() { Output(INTRO_TEXT); }
 
 
 
