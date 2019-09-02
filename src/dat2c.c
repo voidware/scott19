@@ -143,6 +143,18 @@ void emitShortArray(short* s, int n)
     fprintf(out, "}");
 }
 
+void emitByteArray(uchar* s, int n)
+{
+    int i;
+    fprintf(out, "{ ");
+    for (i = 0; i < n; ++i)
+    {
+        if (i) fprintf(out, ", ");
+        fprintf(out, "%d", s[i]);
+    }
+    fprintf(out, "}");
+}
+
 
 void EmitActions()
 {
@@ -223,7 +235,7 @@ void EmitRooms()
         fprintf(out, "\t{ ");
         emitString(it->Text);
         fprintf(out, ", ");
-        emitShortArray(it->Exits, 6);
+        emitByteArray(it->Exits, 6);
         ENDREC;
     }
         

@@ -36,7 +36,7 @@ typedef struct
 typedef struct
 {
 	char *Text;
-	short Exits[6];
+	uchar Exits[6];
 } Room;
 
 typedef struct

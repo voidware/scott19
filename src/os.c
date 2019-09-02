@@ -32,6 +32,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <ctype.h>
 
 #include "defs.h"
 #include "os.h"
@@ -52,9 +53,14 @@ uchar* vidRam;
 // what model? (set up by initModel)
 uchar TRSModel;
 
+// should output be converted to upper case?
+uchar TRSUppercaseOutput;
+
 // How much memory in K  (initModel)
 uchar TRSMemory;
 uchar* TRSMemoryFail;
+
+
 
 // random number seed
 static uint seed;
@@ -65,6 +71,7 @@ static uchar* NewStack;
 
 // point to scroll from (usually 0)
 unsigned int scrollPos;
+
 
 void pushVideo(uchar* a)
 {
@@ -101,10 +108,16 @@ uchar* vidaddr(char x, char y)
     return vidaddrfor(vidoff(x,y));
 }
 
-void outcharat(char x, char y, uchar c)
+static char convertChar(char c)
+{
+    if (TRSUppercaseOutput) c = toupper(c);
+    return c;
+}
+
+void outcharat(char x, char y, char c)
 {
     // set video character directly without affecting cursor position
-    *vidaddr(x,y) = c;
+    *vidaddr(x,y) = convertChar(c);
 }
 
 static uint nextLinePos()
@@ -202,7 +215,7 @@ void outchar(char c)
     }
     else
     {
-        *p = c;
+        *p = convertChar(c);
         ++a;
         if (a >= VIDSIZE && !cols80 || a >= VIDSIZE80)
         {
@@ -784,6 +797,12 @@ void initModel()
             if (!ramAt(rp)) break;
         }
         NewStack = rp;
+
+        if (TRSModel <= 2)
+        {
+            // convert output to upper case
+            TRSUppercaseOutput = 1;
+        }
     }
 
     // switch interrupts back on now we're done poking around memory

@@ -231,25 +231,25 @@ void LoadDatabase(FILE *f, int loud)
 
     ct=0;
     ap=Actions;
-    if(loud)
-        printf("Reading %d actions.\n",na);
-    while(ct<na+1)
+    if(loud) printf("Reading %d actions.\n",na);
+    for (ct = 0; ct<=na; ++ct)
     {
-        if(fscanf(f,"%hd %hd %hd %hd %hd %hd %hd %hd",
-            &ap->Vocab,
-            &ap->Condition[0],
-            &ap->Condition[1],
-            &ap->Condition[2],
-            &ap->Condition[3],
-            &ap->Condition[4],
-            &ap->Action[0],
-            &ap->Action[1])!=8)
+        int t1;
+        if(fscanf(f,"%d %hd %hd %hd %hd %hd %hd %hd",
+                  &t1,
+                  &ap->Condition[0],
+                  &ap->Condition[1],
+                  &ap->Condition[2],
+                  &ap->Condition[3],
+                  &ap->Condition[4],
+                  &ap->Action[0],
+                  &ap->Action[1])!=8)
         {
             printf("Bad action line (%d)\n",ct);
             Exit();
         }
+        ap->Vocab = t1;
         ap++;
-        ct++;
     }           
     ct=0;
     if(loud)
@@ -260,17 +260,22 @@ void LoadDatabase(FILE *f, int loud)
         Nouns[ct]=ReadString(f);
         ct++;
     }
-    ct=0;
     rp=Rooms;
-    if(loud)
-        printf("Reading %d rooms.\n",nr);
-    while(ct<nr+1)
+    if(loud) printf("Reading %d rooms.\n",nr);
+    for (ct = 0; ct<=nr; ++ct)
     {
-        fscanf(f,"%hd %hd %hd %hd %hd %hd",
-            &rp->Exits[0],&rp->Exits[1],&rp->Exits[2],
-            &rp->Exits[3],&rp->Exits[4],&rp->Exits[5]);
+        uchar i;
+        int t[6];
+        fscanf(f,"%d %d %d %d %d %d",
+               &t[0],&t[1],&t[2], &t[3],&t[4],&t[5]);
+
+        for (i = 0; i < 6; ++i)
+        {
+            assert(t[i] < 256);
+            rp->Exits[i] = t[i];
+        }
+        
         rp->Text=ReadString(f);
-        ct++;
         rp++;
     }
     ct=0;
@@ -1063,7 +1068,7 @@ int PerformActions(uchar vb, uchar no)
     }
     if(vb==1 && no>=1 && no<=6) //go
     {
-        int nl;
+        uchar nl;
         if(Items[LIGHT_SOURCE].Location==MyLoc ||
            Items[LIGHT_SOURCE].Location==CARRIED) d=0;
         if(d)

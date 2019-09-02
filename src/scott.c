@@ -146,7 +146,7 @@ static void mainloop()
     
     Intro();
     
-    getSingleCommand("Enter To Begin");
+    getSingleCommand("ENTER To Begin");
 
     for (;;)
     {

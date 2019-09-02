@@ -30,7 +30,7 @@
  */
 
 void outchar(char c);
-void outcharat(char x, char y, uchar c);
+void outcharat(char x, char y, char c);
 void outint(int v);
 void outuint(uint v);
 int putchar(int c);
