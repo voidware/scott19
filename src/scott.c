@@ -39,7 +39,7 @@
 #include "sglue.h"
 
 // by-pass RAM test
-#define SKIP
+#define SKIPxx
 
 jmp_buf main_env;
 
@@ -139,7 +139,7 @@ static void mainloop()
     // When you run this on a real TRS-80, you'll thank this RAM test!
     peformRAMTest();
 #else
-    printStack();
+    //printStack();
 #endif    
 
     outs("\nSCOTT 2019\n");
@@ -165,7 +165,6 @@ static void mainloop()
 int main()
 {
     initModel();
-    
     setStack();
     mainloop();
     revertStack();
