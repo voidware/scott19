@@ -24,7 +24,11 @@ make adv05.dsk
 Will build `adv05.dsk`, `adv05.cmd` and `adv05.cas`
 
 
-## Running on emulators:
+## Running
+
+Runs under Model I, III, 4/4P.
+
+### Emulators
 
 Example, to run on model I, under DOS
 
