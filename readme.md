@@ -1,6 +1,6 @@
 # Scott19 - Scott Adams Interpreter for the TRS-80!
 
-![](adv05.png)
+![](adv05.gif)
 
 ## Build Dependencies
 
