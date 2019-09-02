@@ -127,7 +127,7 @@ static void mainloop()
     // When you run this on a real TRS-80, you'll thank this RAM test!
     peformRAMTest();
 #else
-    printStack();
+    //printStack();
 #endif    
 
     outs("\nSCOTT 2019\n");

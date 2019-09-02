@@ -109,16 +109,28 @@ uchar* vidaddr(char x, char y)
     return vidaddrfor(vidoff(x,y));
 }
 
-static char convertChar(char c)
+static void setChar(volatile char* a, char c)
 {
-    if (TRSUppercaseOutput) c = toupper(c);
-    return c;
+    if (TRSModel <= 2)
+    {
+        // Each time we see a T, check for lcase mod?
+        if (c == 'T')
+        {
+            // 20 displays the same as T, 20+64=84=T
+            *a = 20;
+            TRSUppercaseOutput = (*a != 20);
+        }
+
+        if (TRSUppercaseOutput) c = toupper(c);
+    }
+
+    *a = c;
 }
 
 void outcharat(char x, char y, char c)
 {
     // set video character directly without affecting cursor position
-    *vidaddr(x,y) = convertChar(c);
+    setChar(vidaddr(x, y), c);
 }
 
 static uint nextLinePos()
@@ -216,7 +228,7 @@ void outchar(char c)
     }
     else
     {
-        *p = convertChar(c);
+        setChar(p, c);
         ++a;
         if (a >= VIDSIZE && !cols80 || a >= VIDSIZE80)
         {
