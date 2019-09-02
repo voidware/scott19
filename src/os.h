@@ -50,6 +50,8 @@ void enableInterrups();
 void outs(const char* s);
 void outsWide(const char* s);
 void printfat(uchar x, uchar y, const char* fmt, ...);
+void printf_simple(const char* f, ...);
+int sprintf_simple(char* buf, const char* f, ...);
 uchar getline(char* buf, uchar nmax);
 void lastLine();
 void nextLine();

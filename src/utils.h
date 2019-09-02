@@ -29,7 +29,4 @@
  *  contact@voidware.com
  */
 
-signed char u_strnicmp(const char* s1, const char* s2, unsigned int n);
 signed char u_stricmp(const char* s1, const char* s2);
-
-unsigned char isqrt16(unsigned short a);

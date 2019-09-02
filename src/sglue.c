@@ -69,7 +69,7 @@ void Exit()
 
 void Fatal(const char *x)
 {
-	printf("%s.\n",x);
+	printf_simple("%s.\n",x);
 	Exit();
 }
 
@@ -96,7 +96,6 @@ unsigned char RandomPercent(unsigned char n)
 
 void LineInput(const char* prompt, char *buf, unsigned char sz)
 {
-    //outchar('\n');
     Output(prompt);
 
     getline(buf, sz);
@@ -117,12 +116,7 @@ void emitTopLine(char* s)
 
 void Intro()
 {
-#if 0
-    setWide(1);
-    outsWide(INTRO_TEXT);
-#else
     Output(INTRO_TEXT);
-#endif
 }
 
 

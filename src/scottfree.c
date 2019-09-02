@@ -38,6 +38,13 @@ char **Messages;
 Action *Actions;
 #else
 #include STRINGIZE(GAME)
+
+#include "defs.h"
+#include "os.h"
+
+#define printf printf_simple
+#define sprintf sprintf_simple
+
 #endif
 
 int LightRefill;
@@ -279,16 +286,14 @@ void LoadDatabase(FILE *f, int loud)
         rp++;
     }
     ct=0;
-    if(loud)
-        printf("Reading %d messages.\n",mn);
+    if(loud) printf("Reading %d messages.\n",mn);
     while(ct<mn+1)
     {
         Messages[ct]=ReadString(f);
         ct++;
     }
     ct=0;
-    if(loud)
-        printf("Reading %d items.\n",ni);
+    if(loud) printf("Reading %d items.\n",ni);
     ip=Items;
     while(ct<ni+1)
     {
@@ -317,12 +322,10 @@ void LoadDatabase(FILE *f, int loud)
         ct++;
     }
     fscanf(f,"%d",&ct);
-    if(loud)
-        printf("Version %d.%02d of Adventure ",
+    if(loud) printf("Version %d.%02d of Adventure ",
         ct/100,ct%100);
     fscanf(f,"%d",&ct);
-    if(loud)
-        printf("%d.\nLoad Complete.\n\n",ct);
+    if(loud) printf("%d.\nLoad Complete.\n\n",ct);
 }
 #endif // DAT_FILES
 
@@ -501,24 +504,24 @@ void SaveBuf(char* b, int sz)
     uchar c;
     int ct;
     char* b0 = b;
-    for(c=0;c<16;c++) b += sprintf(b,"%d %d\n",Counters[c],RoomSaved[c]);
+    for(c=0;c<16;c++)
+    {
+        b += sprintf(b,"%d %d\n",Counters[c],(int)RoomSaved[c]);
+    }
+    
     b += sprintf(b, "%ld %d %d %d %d\n",
                  BitFlags,
-                 MyLoc,
+                 (int)MyLoc,
                  CurrentCounter,
-                 SavedRoom,
-                 GameHeader.LightTime);
+                 (int)SavedRoom,
+                 (int)GameHeader.LightTime);
     
     for(ct=0;ct<=GameHeader.NumItems;ct++)
     {
-        b += sprintf(b,"%d\n",Items[ct].Location);
+        b += sprintf(b,"%d\n", (int)Items[ct].Location);
     }
 
-    if (b - b0 >= sz)
-    {
-        Output("SaveBuf Too small! Need ");
-        OutputNumber((int)(b - b0));
-    }
+    if (b - b0 >= sz) printf("SaveBuf Too small! Need %d\n", (int)(b - b0));
 
 }
 

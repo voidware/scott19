@@ -61,7 +61,6 @@ uchar TRSMemory;
 uchar* TRSMemoryFail;
 
 
-
 // random number seed
 static uint seed;
 static uchar* oldVidRam;
@@ -73,6 +72,7 @@ static uchar* NewStack;
 unsigned int scrollPos;
 
 
+#if 0
 void pushVideo(uchar* a)
 {
     oldVidRam = vidRam;
@@ -84,6 +84,7 @@ void popVideo()
     memcpy(oldVidRam, vidRam, (cols80 ? VIDSIZE80 : VIDSIZE));
     vidRam = oldVidRam;
 }
+#endif
 
 static uint vidoff(char x, char y)
 {
@@ -711,6 +712,94 @@ void printfat(uchar x, uchar y, const char* fmt, ...)
     va_end(args);
 }
 #endif
+
+
+/* Really simple printf that handles only the very basics */
+typedef void (*Emitter)(char);
+static void _printf_simple(Emitter e, const char* f, va_list args)
+{
+    // handles:
+    // %d, %x, %s, %ld
+    for (;;)
+    {
+        char c = *f++;
+        if (!c) break;
+
+        if (c == '%')
+        {
+            char buf[33];
+            char* s = 0;
+            
+            c = *f++;
+            if (!c) break;
+            
+            switch (c)
+            {
+            case 'd':
+                _itoa(va_arg(args, int), buf, 10);  // STDCC extention
+                s = buf;
+                break;
+            case 'x':
+                _itoa(va_arg(args, int), buf, 16);  // STDCC extention
+                s = buf;
+                break;
+            case 's':
+                s = va_arg(args, char*);
+                break;
+            case 'l':
+                // XX ASSUME %ld
+                ++f;
+                _ltoa(va_arg(args, long), buf, 10);  // STDCC extention
+                s = buf;
+                break;
+            }
+
+            if (s)
+            {
+                while (*s) (*e)(*s++);
+                continue;
+            }
+        }
+        else if (c == '\\')
+        {
+            c = *f++;
+            if (!c) break;
+            if (c == 'n') c = '\n';
+        }
+        
+        (*e)(c);
+    }
+}
+
+void printf_simple(const char* f, ...)
+{
+    va_list args;
+    va_start(args, f);
+    _printf_simple(outchar, f, args);
+    va_end(args);
+}
+
+static char* emit_sprintf_pos;
+
+static void emit_sprintf(char c)
+{
+    *emit_sprintf_pos++ = c;
+}
+
+int sprintf_simple(char* buf, const char* f, ...)
+{
+    va_list args;
+    va_start(args, f);
+
+    emit_sprintf_pos = buf;
+    _printf_simple(emit_sprintf, f, args);
+    va_end(args);
+
+    *emit_sprintf_pos = 0; // terminate
+    
+    return emit_sprintf_pos - buf;
+}
+
 
 void setWide(uchar v)
 {

@@ -60,8 +60,7 @@ static void peformRAMTest()
         if (TRSMemory < 64) b += 0x40; 
 
         setcursor(9, 1);
-        outint(a);
-        outs("K ");
+        printf_simple("%dK ", a);
         if (!ramTest(b, 4)) break; // test 1K
         --n;
     } while (n);
@@ -69,11 +68,7 @@ static void peformRAMTest()
     if (!n)
         outs("OK\n");
     else
-    {
-        outs("FAILED at ");
-        outuint((uint)TRSMemoryFail);
-        outchar('\n');
-    }
+        printf_simple("FAILED at %x\n", (uint)TRSMemoryFail);
 }
 
 static char getSingleCommand(const char* msg)
@@ -99,11 +94,6 @@ static void startGame()
     rungame();
 }
 
-void _emit(const char* s)
-{
-    outs(s);
-}
-
 char _getchar()
 {
     char c = getkey();
@@ -121,9 +111,8 @@ void _cls(uchar c)
 static void printStack()
 {
     int v;
-    outs("Stack ");
-    outuint(((uint)&v) + 4);
-    outchar('\n');
+    printf_simple("Stack %x\n", ((uint)&v) + 4);
+
 }
 #endif
 
@@ -132,14 +121,13 @@ static void mainloop()
 {
     cls();
     
-    printf("TRS-80 Model %d (%dk RAM)\n", (int)TRSModel, (int)TRSMemory);
-
+    printf_simple("TRS-80 Model %d (%dK RAM)\n", (int)TRSModel, (int)TRSMemory);
 
 #ifndef SKIP
     // When you run this on a real TRS-80, you'll thank this RAM test!
     peformRAMTest();
 #else
-    //printStack();
+    printStack();
 #endif    
 
     outs("\nSCOTT 2019\n");
