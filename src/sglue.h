@@ -30,6 +30,7 @@
  */
 
 void Output(const char* b);
+void OutputNumber(int a);
 void Exit();
 void Fatal(const char *x);
 void ClearScreen(void);

@@ -327,12 +327,6 @@ void OutputWord(char* s)
     Output(s);
 }
 
-void OutputNumber(int a)
-{
-    char buf[16];
-    sprintf(buf,"%d",a);
-    Output(buf);
-}
 
 static const char *ExitNames[]=
 {

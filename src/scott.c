@@ -39,33 +39,41 @@
 #include "sglue.h"
 
 // by-pass RAM test
-#define SKIPxx
+#define SKIP
 
 jmp_buf main_env;
 
 static void peformRAMTest()
 {
-    uchar a = 0;
+    uchar a;
     uchar n = TRSMemory;
     if (n >= 64) n -= 3; // dont test the top 3k screen RAM + KB
 
     // loop 1K at a time.
-    printfat(0,1,"RAM TEST ");
+    setcursor(0, 1);
+    outs("RAM TEST ");
+    a = 0;
     do
     {
         uchar b = a<<2;
         ++a;
         if (TRSMemory < 64) b += 0x40; 
-        
-        printfat(9,1, "%dK ", (int)a);
-        if (!ramTest(b, 4)) break;
+
+        setcursor(9, 1);
+        outint(a);
+        outs("K ");
+        if (!ramTest(b, 4)) break; // test 1K
         --n;
     } while (n);
 
     if (!n)
-        printf("OK\n");
+        outs("OK\n");
     else
-        printf("FAILED at %x\n", (uint)TRSMemoryFail);
+    {
+        outs("FAILED at ");
+        outuint((uint)TRSMemoryFail);
+        outchar('\n');
+    }
 }
 
 static char getSingleCommand(const char* msg)
@@ -113,7 +121,9 @@ void _cls(uchar c)
 static void printStack()
 {
     int v;
-    printf("Stack %x\n", ((int)&v) + 4);
+    outs("Stack ");
+    outuint(((uint)&v) + 4);
+    outchar('\n');
 }
 #endif
 
@@ -129,7 +139,7 @@ static void mainloop()
     // When you run this on a real TRS-80, you'll thank this RAM test!
     peformRAMTest();
 #else
-    //printStack();
+    printStack();
 #endif    
 
     outs("\nSCOTT 2019\n");

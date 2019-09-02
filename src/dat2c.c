@@ -40,10 +40,8 @@ extern void LoadDatabase(FILE *f, int loud);
 extern void LoadGame(char *name);
 
 
-void Output(const char* b)
-{
-    printf(b);
-}
+void Output(const char* b) { printf(b); }
+void OutputNumber(int v) { printf("%d", v); }
 
 void Exit()
 {

@@ -53,6 +53,11 @@ void Output(const char* b)
     }
 }
 
+void OutputNumber(int a)
+{
+    outint(a);
+}
+
 extern jmp_buf main_env;
 
 void Exit()

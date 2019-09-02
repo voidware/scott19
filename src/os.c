@@ -30,6 +30,7 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <stdarg.h>
 
 #include "defs.h"
@@ -105,7 +106,6 @@ void outcharat(char x, char y, uchar c)
     // set video character directly without affecting cursor position
     *vidaddr(x,y) = c;
 }
-
 
 static uint nextLinePos()
 {
@@ -615,7 +615,6 @@ static void setROMCursor()
 
 uchar getline(char* buf, uchar nmax)
 {
-    //printf("CURSOR %04X\n", (int)*ROM_CURSOR);
     setROMCursor();
 
     uchar n;
@@ -651,6 +650,20 @@ void outs(const char* s)
     while (*s) outchar(*s++);
 }
 
+void outint(int v)
+{
+    char buf[17];
+    _itoa(v, buf, 10);  // STDCC extention
+    outs(buf);
+}
+
+void outuint(uint v)
+{
+    char buf[17];
+    _uitoa(v, buf, 10);  // STDCC extention
+    outs(buf);
+}
+
 int putchar(int c)
 {
     outchar(c);
@@ -672,6 +685,7 @@ void outsWide(const char* s)
     }
 }
 
+#if 0
 void printfat(uchar x, uchar y, const char* fmt, ...)
 {
     // printf at (x,y) character position
@@ -683,8 +697,7 @@ void printfat(uchar x, uchar y, const char* fmt, ...)
     vprintf(fmt, args);
     va_end(args);
 }
-
-
+#endif
 
 void setWide(uchar v)
 {
@@ -728,6 +741,13 @@ uchar* alloca(uint a)
 }
 #endif
 
+void enableInterrups()
+{
+    __asm
+        ei
+    __endasm;        
+}
+
 void initModel()
 {
     uchar* rp = (uchar*)0x4000;
@@ -765,13 +785,17 @@ void initModel()
         }
         NewStack = rp;
     }
+
+    // switch interrupts back on now we're done poking around memory
+
+    // breaks m4??
+    //enableInterrups();
 }
 
 void setStack() __naked
 {
     // locate the stack to `NewStack`
     // ASSUME we are called from main
-    
     __asm
         pop hl
         ld (_OldStack),sp
@@ -790,9 +814,6 @@ void revertStack() __naked
         jp (hl)
     __endasm;
 }
-
-
-
 
 void srand(uint v)
 {

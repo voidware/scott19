@@ -52,6 +52,8 @@ void Output(const char* b)
     }
 }
 
+void OutputNumber(int v) { printf("%d", v); }
+
 void Exit()
 {
     Output("Game Over\n");

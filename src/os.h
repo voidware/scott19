@@ -31,6 +31,8 @@
 
 void outchar(char c);
 void outcharat(char x, char y, uchar c);
+void outint(int v);
+void outuint(uint v);
 int putchar(int c);
 char getkey();
 char scanKey();
@@ -43,6 +45,7 @@ void uninitModel();
 void pause();
 void setStack();
 void revertStack();
+void enableInterrups();
 
 void outs(const char* s);
 void outsWide(const char* s);
