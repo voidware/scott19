@@ -36,6 +36,7 @@
 
 #include "defs.h"
 #include "os.h"
+#include "fio.h"
 
 // if we want to scan the keymatrix ourselves
 #define IMPLEMENT_SCAN
@@ -63,28 +64,12 @@ uchar* TRSMemoryFail;
 
 // random number seed
 static uint seed;
-static uchar* oldVidRam;
 
 static uchar* OldStack;
 static uchar* NewStack;
 
 // point to scroll from (usually 0)
 unsigned int scrollPos;
-
-
-#if 0
-void pushVideo(uchar* a)
-{
-    oldVidRam = vidRam;
-    vidRam = a;
-}
-
-void popVideo()
-{
-    memcpy(oldVidRam, vidRam, (cols80 ? VIDSIZE80 : VIDSIZE));
-    vidRam = oldVidRam;
-}
-#endif
 
 static uint vidoff(char x, char y)
 {
@@ -993,4 +978,151 @@ uchar randc(uchar n)
     
     return v;
 }
+
+/*** FILE IO ***********************************************/
+
+uchar ioBuf[256];
+static FCB fileIO;
+
+static void _setFile(const char* name)
+{
+    char* q = fileIO;
+    char c;
+
+    memset(q, ' ', sizeof(fileIO));
+    while ((c = *name++) != 0)
+    {
+        c = toupper(c);
+        if (c == '.') c = '/';
+        *q++ = c;
+    }
+
+    *q++ = ':';
+    *q++ = '1';
+    *q = 0x0d; // terminator
+}
+
+static void _fileOpenError(const char* name, uchar r)
+{
+    printf("Can't open file '%s' (%d)\n", name, (int)r);
+}
+
+static void _fileError(const char* name, uchar r)
+{
+    printf("Error %d, with file '%s'. ", r, name);
+    switch (r)
+    {
+    case 27:
+        printf("Disk full");
+        break;
+    case 38:
+        printf("File not open");
+        break;
+    }
+    outchar('\n');
+}
+
+
+int readFile(const char* name, char* buf, int bz)
+{
+    // return number of bytes read into `buf`
+    // 0 if can't open
+    
+    int cc = 0;
+
+    _setFile(name);
+
+    uchar r = fopen_exist(fileIO);
+    if (!r)
+    {
+        for (;;)
+        {
+            int c = fgetc(fileIO);
+            if (c < 0)
+            {
+                _fileError(name, (c & 0xff));
+                break;
+            }
+            
+            if (cc < bz)
+            {
+                *buf++ = c;
+                ++cc;
+            }
+        }
+    }
+    else _fileOpenError(name, r);
+    return cc;
+}
+
+
+int writeFile(const char* name, char* buf, int bz)
+{
+    int cc = 0;
+
+    _setFile(name);
+
+    uchar r = fopen(fileIO);
+    if (!r)
+    {
+        while (bz)
+        {
+            r = fputc(*buf, fileIO);
+            if (!r)
+            {
+                ++buf;
+                --bz;
+                ++cc;
+            }
+            else
+            {
+                _fileError(name, r);
+            }
+        }
+
+        fclose(fileIO);
+    }
+    else _fileOpenError(name, r);
+    //printf("wrote %d\n", cc);
+    return cc;    
+}
+
+#if 0
+
+// records are 80 bytes
+// NB: to use this version, must change the LRL in fios.s to #80
+#define LRL_SIZE 80
+
+int writeFile(const char* name, char* buf, int bz)
+{
+    int cc = 0;
+
+    _setFile(name);
+
+    uchar r = fopen(fileIO);
+    if (!r)
+    {
+        while (bz > 0)
+        {
+            r = fwrite(buf, fileIO);
+            if (!r)
+            {
+                cc += LRL_SIZE;
+                bz -= LRL_SIZE;
+                buf += LRL_SIZE;
+            }
+            else
+            {
+                _fileError(name, r);
+                break;
+            }
+        }
+        
+        fclose(fileIO);
+    }
+    else _fileOpenError(name, r);
+    return cc;    
+}
+#endif
+
 

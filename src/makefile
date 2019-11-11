@@ -33,7 +33,8 @@ OBJS = \
 	utils.rel \
 	scott.rel \
 	scottfree.rel \
-	sglue.rel 
+	sglue.rel \
+	fios.rel
 
 %.rel: %.c
 	$(CC) $(CFLAGS) -c $< 

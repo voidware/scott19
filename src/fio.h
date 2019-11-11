@@ -6,7 +6,7 @@
  *   | |/ // /_/ // // /_/ / | |/ |/ // /_/ // /   /  __/
  *   |___/ \____//_/ \__,_/  |__/|__/ \__,_//_/    \___/ 
  *                                                       
- *  Copyright (©) Voidware 2019.
+ *  Copyright (Â©) Voidware 2019.
  *
  *  Permission is hereby granted, free of charge, to any person obtaining a copy
  *  of this software and associated documentation files (the "Software"), to
@@ -29,56 +29,20 @@
  *  contact@voidware.com
  */
 
-void outchar(char c);
-void outcharat(char x, char y, char c);
-void outint(int v);
-void outuint(uint v);
-int putchar(int c);
-char getkey();
-char scanKey();
-void setcursor(char x, char y);
-void cls();
-void clsc(uchar c);
-void setWide(uchar v);
-void initModel();
-void uninitModel();
-void pause();
-void setStack();
-void revertStack();
-void enableInterrups();
+#include "defs.h"
 
-void outs(const char* s);
-void outsWide(const char* s);
-void printfat(uchar x, uchar y, const char* fmt, ...);
-void printf_simple(const char* f, ...);
-int sprintf_simple(char* buf, const char* f, ...);
-uchar getline(char* buf, uchar nmax);
-void lastLine();
-void nextLine();
-uchar* vidaddr(char x, char y);
-uchar* vidaddrfor(uint a);
-uchar ramTest(uchar a, uchar n);
+typedef char FCB[50];
 
-typedef void (*IdleHandler)(uchar);
-void setIdleHandler(IdleHandler h, uchar d);
+uchar fopen_exist(FCB f);
+uchar fopen(FCB f);
 
-void srand(uint v);
-unsigned int rand16();
-uint randn(uint n); // 16 bit version
-uchar randc(uchar n); // 8 bit version
+int fgetc(FCB f);
+// return < 0 if error, otherwise char
 
-void pushVideo(uchar* a);
-void popVideo();
+uchar fputc(char c, FCB f);
+// return 0 if OK, otherwise error code
 
-extern uchar TRSModel;
-extern uchar TRSMemory;
-extern uchar* TRSMemoryFail;
-extern uchar cols80;
-extern unsigned int scrollPos;
-extern unsigned int cursorPos;
-extern uchar* vidRam;
+uchar fwrite(const void* buf, FCB f);
+// write one record at `buf` return 0 if ok, else error code
 
-/* file IO */
-int readFile(const char* name, char* buf, int bz);
-int writeFile(const char* name, char* buf, int bz);
-
+void fclose(FCB f);

@@ -31,6 +31,7 @@
 
 #include <stdio.h>
 #include <setjmp.h>
+#include <ctype.h>
 
 #include "defs.h"
 #include "sglue.h"
@@ -102,6 +103,16 @@ void LineInput(const char* prompt, char *buf, unsigned char sz)
     outchar('\n');
 }
 
+char CharInput(const char* prompt)
+{
+    Output(prompt);
+    char c = getkey();
+    c = toupper(c);
+    outchar(c);
+    outchar('\n');
+    return c;
+}
+
 void emitTopLine(char* s)
 {
     // emit the break line which separates the top and bottom, then
@@ -117,6 +128,17 @@ void emitTopLine(char* s)
 void Intro()
 {
     Output(INTRO_TEXT);
+}
+
+
+int ReadSaveFile(const char* name, char* buf, int bz)
+{
+    return readFile(name, buf, bz);
+}
+
+int WriteSaveFile(const char* name, char* buf, int bz)
+{
+    return writeFile(name, buf, bz);
 }
 
 

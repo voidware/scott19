@@ -23,7 +23,7 @@
 #include "utils.h"
 
 #define MAX_WORDLEN 16
-#define MAX_SAVESIZE 512
+#define MAX_SAVESIZE 256
 
 #define STRINGIZE_AUX(a) #a
 #define STRINGIZE(a) STRINGIZE_AUX(a)
@@ -499,16 +499,15 @@ void GetInput(uchar* vb, uchar* no)
     //printf("DEBUG '%s' (%d) '%s' (%d)\n", verb, vc, noun, nc);
 }
 
-void SaveBuf(char* b, int sz)
+int SaveBuf(char* b, int sz)
 {
+    // return actual bytes to save
     uchar c;
     int ct;
     char* b0 = b;
     for(c=0;c<16;c++)
-    {
         b += sprintf(b,"%d %d\n",Counters[c],(int)RoomSaved[c]);
-    }
-    
+
     b += sprintf(b, "%ld %d %d %d %d\n",
                  BitFlags,
                  (int)MyLoc,
@@ -517,12 +516,11 @@ void SaveBuf(char* b, int sz)
                  (int)GameHeader.LightTime);
     
     for(ct=0;ct<=GameHeader.NumItems;ct++)
-    {
         b += sprintf(b,"%d\n", (int)Items[ct].Location);
-    }
 
-    if (b - b0 >= sz) printf("SaveBuf Too small! Need %d\n", (int)(b - b0));
-
+    ct = b - b0;
+    if (ct >= sz) printf("SaveBuf Too small! Need %d\n", ct);
+    return ct;
 }
 
 static char* inb;
@@ -594,80 +592,30 @@ void LoadBuf(char* b)
 }
 
 
-#if 0
-void SaveGame()
-{
-    char buf[256];
-    int ct;
-    FILE *f;
-    Output("Filename: ");
-    LineInput(buf);
-    Output("\n");
-    f=fopen(buf,"w");
-    if(f==NULL)
-    {
-        Output("Unable to create save file.\n");
-        return;
-    }
-    for(ct=0;ct<16;ct++)
-    {
-        fprintf(f,"%d %d\n",Counters[ct],RoomSaved[ct]);
-    }
-    fprintf(f,"%ld %d %hd %d %d %hd\n",BitFlags, (BitFlags&(1<<DARKBIT))?1:0,
-        MyLoc,CurrentCounter,SavedRoom,GameHeader.LightTime);
-    for(ct=0;ct<=GameHeader.NumItems;ct++)
-        fprintf(f,"%hd\n",(short)Items[ct].Location);
-    fclose(f);
-    Output("Saved.\n");
-}
 
-void LoadGame(char *name)
-{
-    FILE *f=fopen(name,"r");
-    int ct=0;
-    short lo;
-    short DarkFlag;
-    if(f==NULL)
-    {
-        Output("Unable to restore game.\n");
-        return;
-    }
-    for(ct=0;ct<16;ct++)
-    {
-        fscanf(f,"%d %d\n",&Counters[ct],&RoomSaved[ct]);
-    }
-    fscanf(f,"%ld %d %hd %d %d %hd\n",
-        &BitFlags,&DarkFlag,&MyLoc,&CurrentCounter,&SavedRoom,
-        &GameHeader.LightTime);
-    /* Backward compatibility */
-    if(DarkFlag)
-        BitFlags|=(1<<15);
-    for(ct=0;ct<=GameHeader.NumItems;ct++)
-    {
-        fscanf(f,"%hd\n",&lo);
-        Items[ct].Location=(unsigned char)lo;
-    }
-    fclose(f);
-}
-#endif
+#define SAVENAME_DEFAULT  "scott.sav"
 
 void SaveGame()
 {
+    const char* name = SAVENAME_DEFAULT;
+    
     char buf[MAX_SAVESIZE];
-    SaveBuf(buf, sizeof(buf));
-
-#if 0
-    printf("SAVE '%s'\n", buf);
-    LoadBuf(buf);
-    SaveBuf(buf, sizeof(buf));
-    printf("SAVE2 '%s'\n", buf);
-#endif    
-
+    int n = SaveBuf(buf, sizeof(buf));
+    WriteSaveFile(name, buf, n);
 }
 
-void LoadGame(char* name)
+int LoadGame()
 {
-    Output("TODO!\n");
+    const char* name = SAVENAME_DEFAULT;
+    //printf("loading game '%s'\n", name);
+    char buf[MAX_SAVESIZE];
+    int n = ReadSaveFile(name, buf, MAX_SAVESIZE);
+    if (n > 0)
+    {
+        printf("loaded %d bytes\n", n);
+        LoadBuf(buf);
+    }
+    return n;
 }
 
 
@@ -1274,11 +1222,19 @@ int PerformActions(uchar vb, uchar no)
     return(fl);
 }
 
-                                
 void rungame()                                
 {
     SaveBuf(startSave, sizeof(startSave));
 
+    char yesno = CharInput("Do you want to restore a previously saved game? ");
+    
+    if (yesno == 'Y')
+    {
+        if (!LoadGame())
+        {
+            CharInput("Load Failed, Press ENTER to continue.");
+        }
+    }
     
     while(1)
     {

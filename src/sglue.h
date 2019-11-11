@@ -47,5 +47,7 @@ void Intro();
     "Ported to the TRS-80 by Voidware 2019.\n\n"
 
 
-
+int ReadSaveFile(const char* name, char* buf, int bz);
+int WriteSaveFile(const char* name, char* buf, int bz);
+char CharInput(const char* prompt);
 

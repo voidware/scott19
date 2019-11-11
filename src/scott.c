@@ -39,7 +39,7 @@
 #include "sglue.h"
 
 // by-pass RAM test
-#define SKIPxx
+#define SKIP
 
 jmp_buf main_env;
 
