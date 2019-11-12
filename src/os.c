@@ -696,21 +696,6 @@ void outsWide(const char* s)
     }
 }
 
-#if 0
-void printfat(uchar x, uchar y, const char* fmt, ...)
-{
-    // printf at (x,y) character position
-    // NB: text is automatically flushed (without need for "\n")
-    
-    va_list args;
-    setcursor(x, y);    
-    va_start(args, fmt);
-    vprintf(fmt, args);
-    va_end(args);
-}
-#endif
-
-
 /* Really simple printf that handles only the very basics */
 typedef void (*Emitter)(char);
 static void _printf_simple(Emitter e, const char* f, va_list args)
@@ -854,6 +839,9 @@ void initModel()
     cols80 = 0;
     vidRam = VIDRAM;
     TRSMemory = 0;
+
+    // leave interrupts off in all cases for now...
+    //clobber_rti();
 
     TRSModel = getModel();
 
@@ -1004,19 +992,19 @@ static void _setFile(const char* name)
 
 static void _fileOpenError(const char* name, uchar r)
 {
-    printf("Can't open file '%s' (%d)\n", name, (int)r);
+    printf_simple("Can't open file '%s' (%d)\n", name, (int)r);
 }
 
 static void _fileError(const char* name, uchar r)
 {
-    printf("Error %d, with file '%s'. ", r, name);
+    printf_simple("Error %d, with file '%s'. ", r, name);
     switch (r)
     {
     case 27:
-        printf("Disk full");
+        printf_simple("Disk full");
         break;
     case 38:
-        printf("File not open");
+        printf_simple("File not open");
         break;
     }
     outchar('\n');
@@ -1083,7 +1071,6 @@ int writeFile(const char* name, char* buf, int bz)
         fclose(fileIO);
     }
     else _fileOpenError(name, r);
-    //printf("wrote %d\n", cc);
     return cc;    
 }
 
