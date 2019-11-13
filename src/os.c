@@ -71,6 +71,8 @@ static uchar* NewStack;
 // point to scroll from (usually 0)
 unsigned int scrollPos;
 
+static void fioInit();
+
 static uint vidoff(char x, char y)
 {
     // calculate the video offset from the screen base for CHARACTER pos (x,y)
@@ -898,6 +900,9 @@ void initModel()
         // switch interrupts back on now we're done poking around memory
         enableInterrups();
     }
+
+    // set up function pointers for read/write
+    fioInit();
 }
 
 void setStack() __naked
@@ -1004,6 +1009,38 @@ static void _setFile(const char* name)
     *q = 0x0d; // terminator
 }
 
+typedef uchar (*fputc_fn)(char, FCB);
+typedef int (*fgetc_fn)(FCB);
+typedef uchar (*fopen_fn)(FCB);
+typedef uchar (*fopen_exist_fn)(FCB);
+typedef void (*fclose_fn)(FCB);
+
+static fputc_fn _fputc_fn;
+static fgetc_fn _fgetc_fn;
+static fopen_fn _fopen_fn;
+static fopen_exist_fn _fopen_exist_fn;
+static fclose_fn _fclose_fn;
+
+static void fioInit()
+{
+    if (TRSModel >= 4)
+    {
+        _fputc_fn = fputc4;
+        _fgetc_fn = fgetc4;
+        _fopen_fn = fopen4;
+        _fopen_exist_fn = fopen_exist4;
+        _fclose_fn = fclose4;
+    }
+    else
+    {
+        _fputc_fn = fputc;
+        _fgetc_fn = fgetc;
+        _fopen_fn = fopen;
+        _fopen_exist_fn = fopen_exist;
+        _fclose_fn = fclose;
+    }
+}
+
 static void _fileError(const char* name, uchar r)
 {
     printf_simple("Error with file '%s', ", name);
@@ -1036,10 +1073,10 @@ int readFile(const char* name, char* buf, int bz)
     _setFile(name);
 
     setM4Map1();
-    uchar r = fopen_exist(fileIO);
+    uchar r = (*_fopen_exist_fn)(fileIO);
     while (!r)
     {
-        int c = fgetc(fileIO);
+        int c = (*_fgetc_fn)(fileIO);
         if (c < 0)
         {
             r = c; // error or EOF
@@ -1050,6 +1087,8 @@ int readFile(const char* name, char* buf, int bz)
             ++cc;
         }
     }
+
+    (*_fclose_fn)(fileIO);
 
     setM4Map2();
     if (r && r != 28) _fileError(name, r);  // EOF not error
@@ -1064,15 +1103,15 @@ int writeFile(const char* name, char* buf, int bz)
     _setFile(name);
     setM4Map1();
 
-    uchar r = fopen(fileIO);
+    uchar r = (*_fopen_fn)(fileIO);
     while (!r && bz)
     {
         --bz;
-        r = fputc(*buf++, fileIO);
+        r = (*_fputc_fn)(*buf++, fileIO);
         ++cc;
     }
 
-    fclose(fileIO);
+    (*_fclose_fn)(fileIO);
 
     setM4Map2();
     if (r) _fileError(name, r);

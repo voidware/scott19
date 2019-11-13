@@ -50,5 +50,12 @@ uchar fwrite(const void* buf, FCB f);
 
 void fclose(FCB f);
 
+// model4 versions
+uchar fopen_exist4(FCB f);
+uchar fopen4(FCB f);
+int fgetc4(FCB f);
+uchar fputc4(char c, FCB f);
+void fclose4(FCB f);
+
 #endif // __fio_h__
 
