@@ -39,8 +39,8 @@
 #include "fio.h"
 
 // if we want to scan the keymatrix ourselves
-#define IMPLEMENT_SCAN
-#define IMPLEMENT_GETLINE
+#define IMPLEMENT_SCANxx
+#define IMPLEMENT_GETLINExx
 
 // store our own cursor position (do not use the OS location)
 unsigned int cursorPos;
@@ -265,6 +265,20 @@ static uchar inPort(uchar port)
     __endasm;
 }
 
+void enableInterrups()
+{
+    __asm
+        ei
+    __endasm;        
+}
+
+void disableInterrups()
+{
+    __asm
+        di
+    __endasm;        
+}
+
 static uchar ramAt(uchar* p) __naked
 {
     // return 1 if we have RAM at address `p', 0 otherwise
@@ -295,6 +309,24 @@ char* getHigh() __naked
         RST 0x28   // @HIGH@ -> hl
         ret
     __endasm;
+}
+
+void setM4Map1()
+{
+    if (TRSModel >= 4)
+    {
+        outPort(0x84, 0x05); // M4 map 1, 80cols
+        enableInterrups();
+    }
+}
+
+void setM4Map2()
+{
+    if (TRSModel >= 4)
+    {
+        disableInterrups();
+        outPort(0x84, 0x06); // M4 map 2, 80cols
+    }
 }
 
 static uchar testBlock(uchar a)
@@ -340,7 +372,7 @@ static uchar getModel()
     
     // attempt to change to M4 bank 1, which maps RAM over 14K ROM
     // will work if we _are_ M4.
-    outPort(0x84, 1); 
+    //outPort(0x84, 1); 
 
     // if we have RAM, then M4
     if (ramAt((uchar*)0x2000))
@@ -450,11 +482,21 @@ char scanKey()
 
     if (TRSModel >= 4)
     {
+        setM4Map1();
+        
     __asm
         ld    a,#8      // @KBD
         RST   0x28      // uses DE
         ld    l,a
+        push  hl
     __endasm;
+
+       setM4Map2();
+
+    __asm
+        pop   hl
+    __endasm;        
+
     }
     else
     {
@@ -626,6 +668,7 @@ static void setROMCursor()
 
 uchar getline(char* buf, uchar nmax)
 {
+    setM4Map1();
     setROMCursor();
 
     uchar n;
@@ -633,6 +676,7 @@ uchar getline(char* buf, uchar nmax)
     if (TRSModel >= 4)
     {
         n = rom4_getline(buf, nmax);
+        setM4Map2();
     }
     else
     {
@@ -804,34 +848,6 @@ void setWide(uchar v)
     }
 }
 
-#if 0
-static uint alloca_ret;
-uchar* alloca(uint a)
-{
-    __asm
-        pop  bc         // ret
-        pop  de         // a
-        push de
-        ld   (_alloca_ret),sp  // point to a is result
-        xor a
-        ld   h,a
-        ld   l,a        // hl = 0
-        sbc  hl,de      // hl = -a
-        add  hl,sp      // hl = sp - a
-        ld   sp,hl      
-        push bc
-    __endasm;
-    return alloca_ret;
-}
-#endif
-
-void enableInterrups()
-{
-    __asm
-        ei
-    __endasm;        
-}
-
 void initModel()
 {
     uchar* rp = (uchar*)0x4000;
@@ -839,9 +855,6 @@ void initModel()
     cols80 = 0;
     vidRam = VIDRAM;
     TRSMemory = 0;
-
-    // leave interrupts off in all cases for now...
-    //clobber_rti();
 
     TRSModel = getModel();
 
@@ -851,8 +864,8 @@ void initModel()
         
         cols80 = 1;
         vidRam = VIDRAM80;
-        
-        outPort(0x84, 0x86); // M4 map, 80cols, page 1
+
+        setM4Map2();
         setSpeed(0); // slow (for now..)
         
         TRSMemory = 64;
@@ -860,6 +873,10 @@ void initModel()
         // m4 0xf400 - vidram is keyboard area
         NewStack = (uchar*)0xF400; 
         if (NewStack > h) NewStack = h;
+
+        //clobber_rti();
+
+        // leave interrupts off for M4.
     }
     else
     {
@@ -877,12 +894,10 @@ void initModel()
             // convert output to upper case
             TRSUppercaseOutput = 1;
         }
+
+        // switch interrupts back on now we're done poking around memory
+        enableInterrups();
     }
-
-    // switch interrupts back on now we're done poking around memory
-
-    // breaks m4??
-    //enableInterrups();
 }
 
 void setStack() __naked
@@ -977,7 +992,6 @@ static void _setFile(const char* name)
     char* q = fileIO;
     char c;
 
-    memset(q, ' ', sizeof(fileIO));
     while ((c = *name++) != 0)
     {
         c = toupper(c);
@@ -990,21 +1004,23 @@ static void _setFile(const char* name)
     *q = 0x0d; // terminator
 }
 
-static void _fileOpenError(const char* name, uchar r)
-{
-    printf_simple("Can't open file '%s' (%d)\n", name, (int)r);
-}
-
 static void _fileError(const char* name, uchar r)
 {
-    printf_simple("Error %d, with file '%s'. ", r, name);
+    printf_simple("Error with file '%s', ", name);
     switch (r)
     {
+    case 24:
+        printf_simple("Not Found");
+        break;
+    case 26:
     case 27:
         printf_simple("Disk full");
         break;
     case 38:
         printf_simple("File not open");
+        break;
+    default:
+        printf_simple("Code %d", (int)r);
         break;
     }
     outchar('\n');
@@ -1014,32 +1030,29 @@ static void _fileError(const char* name, uchar r)
 int readFile(const char* name, char* buf, int bz)
 {
     // return number of bytes read into `buf`
-    // 0 if can't open
     
     int cc = 0;
 
     _setFile(name);
 
+    setM4Map1();
     uchar r = fopen_exist(fileIO);
-    if (!r)
+    while (!r)
     {
-        for (;;)
+        int c = fgetc(fileIO);
+        if (c < 0)
         {
-            int c = fgetc(fileIO);
-            if (c < 0)
-            {
-                _fileError(name, (c & 0xff));
-                break;
-            }
-            
-            if (cc < bz)
-            {
-                *buf++ = c;
-                ++cc;
-            }
+            r = c; // error or EOF
+        }
+        else if (cc < bz)
+        {
+            *buf++ = c;
+            ++cc;
         }
     }
-    else _fileOpenError(name, r);
+
+    setM4Map2();
+    if (r && r != 28) _fileError(name, r);  // EOF not error
     return cc;
 }
 
@@ -1049,28 +1062,20 @@ int writeFile(const char* name, char* buf, int bz)
     int cc = 0;
 
     _setFile(name);
+    setM4Map1();
 
     uchar r = fopen(fileIO);
-    if (!r)
+    while (!r && bz)
     {
-        while (bz)
-        {
-            r = fputc(*buf, fileIO);
-            if (!r)
-            {
-                ++buf;
-                --bz;
-                ++cc;
-            }
-            else
-            {
-                _fileError(name, r);
-            }
-        }
-
-        fclose(fileIO);
+        --bz;
+        r = fputc(*buf++, fileIO);
+        ++cc;
     }
-    else _fileOpenError(name, r);
+
+    fclose(fileIO);
+
+    setM4Map2();
+    if (r) _fileError(name, r);
     return cc;    
 }
 

@@ -12,7 +12,8 @@ GCC = gcc
 # callee-saves appears not available on Z80
 OPTBASE = --opt-code-size #--all-callee-saves
 
-OPT = $(OPTBASE) --max-allocs-per-node 10000
+OPT = $(OPTBASE) --max-allocs-per-node 20000
+OPT2 = $(OPTBASE) --max-allocs-per-node 100000 
 
 ASFLAGS = -l
 DEFS = -DSMALL -DNDEBUG 

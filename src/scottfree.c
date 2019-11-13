@@ -612,7 +612,6 @@ int LoadGame()
     int n = ReadSaveFile(name, buf, MAX_SAVESIZE);
     if (n > 0)
     {
-        printf("loaded %d bytes\n", n);
         LoadBuf(buf);
     }
     return n;

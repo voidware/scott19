@@ -67,8 +67,8 @@ unsigned int rand16();
 uint randn(uint n); // 16 bit version
 uchar randc(uchar n); // 8 bit version
 
-void pushVideo(uchar* a);
-void popVideo();
+void setM4Map1();
+void setM4Map2();
 
 extern uchar TRSModel;
 extern uchar TRSMemory;

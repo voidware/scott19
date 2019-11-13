@@ -148,6 +148,8 @@ static void mainloop()
             if (c != 'Y') break;
         }
     }
+
+    setM4Map1();
 }
 
 int main()

@@ -29,6 +29,9 @@
  *  contact@voidware.com
  */
 
+#ifndef __fio_h__
+#define __fio_h__
+
 #include "defs.h"
 
 typedef char FCB[50];
@@ -46,3 +49,6 @@ uchar fwrite(const void* buf, FCB f);
 // write one record at `buf` return 0 if ok, else error code
 
 void fclose(FCB f);
+
+#endif // __fio_h__
+
