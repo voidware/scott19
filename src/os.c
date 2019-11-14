@@ -306,21 +306,51 @@ char* getHigh() __naked
     __endasm;
 }
 
+#if 0
+static uchar getOFLAGS()
+{
+    __asm
+        ld   a,#101    // @FLAGS
+        rst  0x28
+        ld   l,14(iy)  // @OFLAGS = OPREG 0x84
+    __endasm;
+}
+
+static void setOFLAGS(uchar v)
+{
+    __asm
+        pop  hl
+        inc  sp
+        pop  bc
+        push bc    // b = v
+        dec  sp
+        push hl
+        ld   a,#101    // @FLAGS
+        rst  0x28
+        ld   14(iy),b
+    __endasm;
+}
+#endif
+
 void setM4Map1()
 {
+    // switch to config 4; ram + ram
+    // this is the normal state for DOS
     if (useSVC)
     {
-        outPort(0x84, 0x05); // M4 map 1, 80cols
+        outPort(0x84, 0x87); // M4 map 4, 80cols
         enableInterrups();
     }
 }
 
 void setM4Map2()
 {
+    // switch to config 3; ram + ram + KB + VIDEO
+    // this is the mode we will run in
     if (useSVC)
     {
         disableInterrups();
-        outPort(0x84, 0x06); // M4 map 2, 80cols
+        outPort(0x84, 0x86); // M4 map 3, 80cols
     }
 }
 
@@ -906,7 +936,6 @@ void initModel()
         if (NewStack > h) NewStack = h;
 
         //clobber_rti();
-
         // leave interrupts off for M4.
     }
     else
