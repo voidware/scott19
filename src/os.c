@@ -260,14 +260,14 @@ static uchar inPort(uchar port)
     __endasm;
 }
 
-void enableInterrups()
+void enableInterrupts()
 {
     __asm
         ei
     __endasm;        
 }
 
-void disableInterrups()
+void disableInterrupts()
 {
     __asm
         di
@@ -339,7 +339,7 @@ void setM4Map1()
     if (useSVC)
     {
         outPort(0x84, 0x87); // M4 map 4, 80cols
-        enableInterrups();
+        enableInterrupts();
     }
 }
 
@@ -349,7 +349,7 @@ void setM4Map2()
     // this is the mode we will run in
     if (useSVC)
     {
-        disableInterrups();
+        disableInterrupts();
         outPort(0x84, 0x86); // M4 map 3, 80cols
     }
 }
@@ -956,7 +956,7 @@ void initModel()
         }
 
         // switch interrupts back on now we're done poking around memory
-        enableInterrups();
+        enableInterrupts();
     }
 }
 
