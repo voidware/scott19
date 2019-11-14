@@ -49,7 +49,6 @@ void enableInterrups();
 
 void outs(const char* s);
 void outsWide(const char* s);
-//void printfat(uchar x, uchar y, const char* fmt, ...);
 void printf_simple(const char* f, ...);
 int sprintf_simple(char* buf, const char* f, ...);
 uchar getline(char* buf, uchar nmax);
@@ -67,9 +66,6 @@ void srand(uint v);
 unsigned int rand16();
 uint randn(uint n); // 16 bit version
 uchar randc(uchar n); // 8 bit version
-
-void setM4Map1();
-void setM4Map2();
 
 extern uchar TRSModel;
 extern uchar TRSMemory;

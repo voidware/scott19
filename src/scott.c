@@ -129,7 +129,6 @@ static void mainloop()
     outs("\nSCOTT 2019\n");
     
     Intro();
-    
     getSingleCommand("ENTER To Begin");
 
     for (;;)
@@ -144,8 +143,6 @@ static void mainloop()
             if (c != 'Y') break;
         }
     }
-
-    setM4Map1();
 }
 
 int main()

@@ -315,35 +315,39 @@ static uchar getOFLAGS()
         ld   l,14(iy)  // @OFLAGS = OPREG 0x84
     __endasm;
 }
+#endif
 
 static void setOFLAGS(uchar v)
 {
     __asm
         pop  hl
-        inc  sp
+        dec  sp
         pop  bc
         push bc    // b = v
-        dec  sp
+        inc  sp
         push hl
         ld   a,#101    // @FLAGS
         rst  0x28
         ld   14(iy),b
     __endasm;
 }
-#endif
 
-void setM4Map1()
+#if 0
+static void setM4Map1()
 {
     // switch to config 4; ram + ram
     // this is the normal state for DOS
     if (useSVC)
     {
+        disableInterrupts();
         outPort(0x84, 0x87); // M4 map 4, 80cols
+        setOFLAGS(0x87);
         enableInterrupts();
     }
 }
+#endif
 
-void setM4Map2()
+static void setM4Map2()
 {
     // switch to config 3; ram + ram + KB + VIDEO
     // this is the mode we will run in
@@ -351,6 +355,8 @@ void setM4Map2()
     {
         disableInterrupts();
         outPort(0x84, 0x86); // M4 map 3, 80cols
+        setOFLAGS(0x86);
+        enableInterrupts();
     }
 }
 
@@ -506,21 +512,11 @@ char scanKey()
 
     if (useSVC)
     {
-        setM4Map1();
-        
     __asm
         ld    a,#8      // @KBD
         RST   0x28      // uses DE
         ld    l,a
-        push  hl
     __endasm;
-
-       setM4Map2();
-
-    __asm
-        pop   hl
-    __endasm;        
-
     }
     else
     {
@@ -708,7 +704,6 @@ static void setROMCursor()
 
 uchar getline(char* buf, uchar nmax)
 {
-    setM4Map1();
     setROMCursor();
 
     uchar n;
@@ -718,7 +713,6 @@ uchar getline(char* buf, uchar nmax)
         dsp4(0x0e); // cursor on
         n = rom4_getline(buf, nmax);
         dsp4(0x0f); // cursor off
-        setM4Map2();
     }
     else
     {
@@ -927,8 +921,8 @@ void initModel()
         dsp4(0x0f);
 
         setM4Map2();
-        setSpeed(0); // slow (for now..)
-        
+        setSpeed(1); // fast!
+
         TRSMemory = 64;
 
         // m4 0xf400 - vidram is keyboard area
@@ -936,7 +930,6 @@ void initModel()
         if (NewStack > h) NewStack = h;
 
         //clobber_rti();
-        // leave interrupts off for M4.
     }
     else
     {
@@ -954,10 +947,10 @@ void initModel()
             // convert output to upper case
             TRSUppercaseOutput = 1;
         }
-
-        // switch interrupts back on now we're done poking around memory
-        enableInterrupts();
     }
+
+    // switch interrupts back on now we're done poking around memory
+    enableInterrupts();
 }
 
 void setStack() __naked
@@ -1095,7 +1088,6 @@ int readFile(const char* name, char* buf, int bz)
 
     _setFile(name);
 
-    setM4Map1();
     uchar r = fopen_exist(fileIO);
     while (!r)
     {
@@ -1113,7 +1105,6 @@ int readFile(const char* name, char* buf, int bz)
 
     fclose(fileIO);
 
-    setM4Map2();
     if (r && r != 28) _fileError(name, r);  // EOF not error
     return cc;
 }
@@ -1124,7 +1115,6 @@ int writeFile(const char* name, char* buf, int bz)
     int cc = 0;
 
     _setFile(name);
-    setM4Map1();
 
     uchar r = fopen(fileIO);
     while (!r && bz)
@@ -1136,7 +1126,6 @@ int writeFile(const char* name, char* buf, int bz)
 
     fclose(fileIO);
 
-    setM4Map2();
     if (r) _fileError(name, r);
     return cc;    
 }
