@@ -105,11 +105,8 @@ void LineInput(const char* prompt, char *buf, unsigned char sz)
 
 char CharInput(const char* prompt)
 {
-    Output(prompt);
-    char c = getkey();
-    c = toupper(c);
-    outchar(c);
-    outchar('\n');
+    char c = getSingleChar(prompt);
+    //outchar('\n');
     return c;
 }
 

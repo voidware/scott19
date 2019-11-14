@@ -53,6 +53,7 @@ void outsWide(const char* s);
 void printf_simple(const char* f, ...);
 int sprintf_simple(char* buf, const char* f, ...);
 uchar getline(char* buf, uchar nmax);
+char getSingleChar(const char* msg);
 void lastLine();
 void nextLine();
 uchar* vidaddr(char x, char y);

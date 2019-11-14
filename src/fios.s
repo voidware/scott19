@@ -31,6 +31,7 @@
 
     .module fios
 	.globl	_ioBuf
+    .globl	_useSVC
     
     .area   _CODE
 
@@ -42,7 +43,13 @@ dos_close         .equ  0x4428
 dos_seek          .equ  0x4442
 dos_read_record   .equ  0x4436
 dos_write_record  .equ  0x4439
-    
+
+svc_open          .equ  59
+svc_init          .equ  58
+svc_close         .equ  60
+svc_get           .equ  3
+svc_put           .equ  4
+
     ;; uchar fopen_exist(FCB f)
 _fopen_exist::
     pop  hl
@@ -51,7 +58,15 @@ _fopen_exist::
     push hl
     ld   hl, #_ioBuf
     ld   b,#0
+    ld   a,(_useSVC)
+    or   a,a
+    jr   nz,.foe1     
     call dos_open_exist
+    jr   .foe2
+.foe1:
+    ld   a,#svc_open
+    rst  0x28
+.foe2:    
     jr   nz,.fiofinish
     xor  a,a
     
@@ -68,11 +83,19 @@ _fopen::
     push hl
     ld   hl, #_ioBuf
     ld   b,#0                   ;lrl
-    call dos_open
+    ld   a,(_useSVC)
+    or   a,a
     jr   nz,.fo1
-    xor  a,a
+    call dos_open
+    jr   .fo2
 .fo1:
-    jp  .fiofinish
+    ld   a,#svc_init
+    rst  0x28
+.fo2:    
+    jr   nz,.fo3
+    xor  a,a
+.fo3:
+    jr  .fiofinish
 
     ;; int fgetc(FCB f)
     ;;  return char or if < 0, LSB = error
@@ -81,29 +104,47 @@ _fgetc::
     pop  de                     ; f
     push de
     push hl
+    ld   a,(_useSVC)
+    or   a,a
+    jr   nz,.fg1    
     call dos_read_byte
+    jr   .fg2
+.fg1:
+    ld   a,#svc_get
+    rst  0x28    
+.fg2:    
     jr  nz,.readError
     ld  h,#0
-    jp  .fiofinish
+    jr  .fiofinish
 .readError:
     ld  h,#0xff
-    jp  .fiofinish
+    jr  .fiofinish
 
     ;; char fputc(char c, FCB f)
 _fputc::
     pop  hl
     dec  sp
-    pop  af                     ;a=c
+    pop  bc                     ;b=char
     pop  de                     ;f
     push de
-    push af
+    push bc
     inc  sp
     push hl
+    ld   a,(_useSVC)
+    or   a,a
+    jr   nz,.fp1
+    ld   a,b
     call dos_write_byte
-    jr  nz,.fp1
+    jr   .fp2
+.fp1:
+    ld   c,b
+    ld   a,#svc_put
+    rst  0x28
+.fp2:    
+    jr  nz,.fp3
     xor a,a
-.fp1:   
-    jp  .fiofinish
+.fp3:   
+    jr  .fiofinish
 
     ;; uchar fwrite(const void* buf, FCB f)
     ;; will write one record 
@@ -126,7 +167,12 @@ _fclose::
     pop  de                     ;f
     push de
     push hl
-    call dos_close
-    ret
-    
+    ld   a,(_useSVC)
+    or   a,a
+    jr   nz,.fc1
+    jp   dos_close
+.fc1:
+    ld   a,#svc_close
+    rst  0x28
+    ret    
     

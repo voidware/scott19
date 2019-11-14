@@ -73,12 +73,8 @@ static void peformRAMTest()
 
 static char getSingleCommand(const char* msg)
 {
-    char c;
     lastLine();
-    outs(msg);
-    c = getkey();
-    c = toupper(c);
-    return c;
+    return getSingleChar(msg);
 }
 
 static void startGame()

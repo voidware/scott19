@@ -53,6 +53,7 @@ uchar* vidRam;
 
 // what model? (set up by initModel)
 uchar TRSModel;
+uchar useSVC;
 
 // should output be converted to upper case?
 uchar TRSUppercaseOutput;
@@ -70,8 +71,6 @@ static uchar* NewStack;
 
 // point to scroll from (usually 0)
 unsigned int scrollPos;
-
-static void fioInit();
 
 static uint vidoff(char x, char y)
 {
@@ -148,14 +147,8 @@ static void clearLine()
 void lastLine()
 {
     // put the cursor on the last line 
-    if (cols80)
-    {
-        setcursor(0, 23);
-    }
-    else
-    {
-        setcursor(0, 15);
-    }
+    if (cols80) setcursor(0, 23);
+    else setcursor(0, 15);
 }
 
 void nextLine()
@@ -315,7 +308,7 @@ char* getHigh() __naked
 
 void setM4Map1()
 {
-    if (TRSModel >= 4)
+    if (useSVC)
     {
         outPort(0x84, 0x05); // M4 map 1, 80cols
         enableInterrups();
@@ -324,7 +317,7 @@ void setM4Map1()
 
 void setM4Map2()
 {
-    if (TRSModel >= 4)
+    if (useSVC)
     {
         disableInterrups();
         outPort(0x84, 0x06); // M4 map 2, 80cols
@@ -380,7 +373,6 @@ static uchar getModel()
     if (ramAt((uchar*)0x2000))
     {
         // this is a 4 or 4P.
-        // NB: leave at bank 1 for now...
         m = 4;
     }
     else
@@ -404,7 +396,7 @@ static uchar getModel()
 
 static void setSpeed(uchar fast)
 {
-    if (TRSModel >= 4)
+    if (useSVC)
     {
         // M4 runs at 2.02752 or 4.05504 MHz
         outPort(0xec, fast ? 0x40 : 0);
@@ -482,7 +474,7 @@ char scanKey()
 {
     // return key pressed or 0 if none
 
-    if (TRSModel >= 4)
+    if (useSVC)
     {
         setM4Map1();
         
@@ -507,6 +499,22 @@ char scanKey()
         ld      l,a
     __endasm;
     }
+}
+
+static void dsp4(char c)
+{
+    // model 4 charout
+    __asm
+        pop  hl
+        dec  sp
+        pop  af                 // a = char
+        push af
+        inc  sp
+        push hl
+        ld   c,a
+        ld   a,#2               // @DSP
+        rst  0x28
+    __endasm;
 }
 
 #endif // IMPLEMENT_SCAN
@@ -645,7 +653,7 @@ static uchar c4row;
 static uchar c4col;
 static void setROMCursor()
 {
-    if (TRSModel >= 4)
+    if (useSVC)
     {
         c4row = cursorPos/80;
         c4col = cursorPos - c4row*80;
@@ -675,9 +683,11 @@ uchar getline(char* buf, uchar nmax)
 
     uchar n;
 
-    if (TRSModel >= 4)
+    if (useSVC)
     {
+        dsp4(0x0e); // cursor on
         n = rom4_getline(buf, nmax);
+        dsp4(0x0f); // cursor off
         setM4Map2();
     }
     else
@@ -691,6 +701,21 @@ uchar getline(char* buf, uchar nmax)
 }
 
 #endif // IMPLEMENT_GETLINE
+
+
+char getSingleChar(const char* msg)
+{
+    // print a message and get a single key & echo it and newline
+    char c;
+    outs(msg);
+
+    c = getkey();
+    c = toupper(c);
+    
+    outchar(c);
+    if (c != '\n') outchar('\n');
+    return c;
+}
 
 void pause()
 {
@@ -865,7 +890,11 @@ void initModel()
         char* h = getHigh();
         
         cols80 = 1;
+        useSVC = 1;
         vidRam = VIDRAM80;
+
+        // switch off cursor
+        dsp4(0x0f);
 
         setM4Map2();
         setSpeed(0); // slow (for now..)
@@ -900,9 +929,6 @@ void initModel()
         // switch interrupts back on now we're done poking around memory
         enableInterrups();
     }
-
-    // set up function pointers for read/write
-    fioInit();
 }
 
 void setStack() __naked
@@ -1009,38 +1035,6 @@ static void _setFile(const char* name)
     *q = 0x0d; // terminator
 }
 
-typedef uchar (*fputc_fn)(char, FCB);
-typedef int (*fgetc_fn)(FCB);
-typedef uchar (*fopen_fn)(FCB);
-typedef uchar (*fopen_exist_fn)(FCB);
-typedef void (*fclose_fn)(FCB);
-
-static fputc_fn _fputc_fn;
-static fgetc_fn _fgetc_fn;
-static fopen_fn _fopen_fn;
-static fopen_exist_fn _fopen_exist_fn;
-static fclose_fn _fclose_fn;
-
-static void fioInit()
-{
-    if (TRSModel >= 4)
-    {
-        _fputc_fn = fputc4;
-        _fgetc_fn = fgetc4;
-        _fopen_fn = fopen4;
-        _fopen_exist_fn = fopen_exist4;
-        _fclose_fn = fclose4;
-    }
-    else
-    {
-        _fputc_fn = fputc;
-        _fgetc_fn = fgetc;
-        _fopen_fn = fopen;
-        _fopen_exist_fn = fopen_exist;
-        _fclose_fn = fclose;
-    }
-}
-
 static void _fileError(const char* name, uchar r)
 {
     printf_simple("Error with file '%s', ", name);
@@ -1073,10 +1067,10 @@ int readFile(const char* name, char* buf, int bz)
     _setFile(name);
 
     setM4Map1();
-    uchar r = (*_fopen_exist_fn)(fileIO);
+    uchar r = fopen_exist(fileIO);
     while (!r)
     {
-        int c = (*_fgetc_fn)(fileIO);
+        int c = fgetc(fileIO);
         if (c < 0)
         {
             r = c; // error or EOF
@@ -1088,7 +1082,7 @@ int readFile(const char* name, char* buf, int bz)
         }
     }
 
-    (*_fclose_fn)(fileIO);
+    fclose(fileIO);
 
     setM4Map2();
     if (r && r != 28) _fileError(name, r);  // EOF not error
@@ -1103,15 +1097,15 @@ int writeFile(const char* name, char* buf, int bz)
     _setFile(name);
     setM4Map1();
 
-    uchar r = (*_fopen_fn)(fileIO);
+    uchar r = fopen(fileIO);
     while (!r && bz)
     {
         --bz;
-        r = (*_fputc_fn)(*buf++, fileIO);
+        r = fputc(*buf++, fileIO);
         ++cc;
     }
 
-    (*_fclose_fn)(fileIO);
+    fclose(fileIO);
 
     setM4Map2();
     if (r) _fileError(name, r);
