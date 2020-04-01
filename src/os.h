@@ -36,6 +36,7 @@ void outuint(uint v);
 int putchar(int c);
 char getkey();
 char scanKey();
+char scanKeyMatrix(char hold);
 void setcursor(char x, char y);
 void cls();
 void clsc(uchar c);
@@ -74,6 +75,7 @@ extern uchar cols80;
 extern unsigned int scrollPos;
 extern unsigned int cursorPos;
 extern uchar* vidRam;
+extern char* CmdLine;
 
 /* file IO */
 int readFile(const char* name, char* buf, int bz);

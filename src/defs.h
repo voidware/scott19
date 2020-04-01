@@ -56,6 +56,10 @@ typedef int int16;
 #define HIGH32K 0xBFFF
 #define HIGH16K 0x7FFF
 
+// not valid for M4
+#define COMMAND_LINE_BUF ((char*)0x4318)
+
+
 // row 0..7
 #define KBBASE ((uchar*)0x3800)
 #define KBBASE80 ((uchar*)0xf400)
@@ -85,5 +89,4 @@ typedef int int16;
 //#pragma callee_saves outchar
 
 #endif // __defs_h__
-
 

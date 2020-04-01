@@ -44,10 +44,10 @@ void Intro();
     "Release 1.14, (c) 1993,1994,1995\n" \
     "Swansea University Computer Society.\n" \
     "Distributed under the GNU software license.\n" \
-    "Ported to the TRS-80 by Voidware 2019.\n\n"
+    "Ported to the TRS-80 by Voidware 2019-20.\n\n"
 
 
-int ReadSaveFile(const char* name, char* buf, int bz);
-int WriteSaveFile(const char* name, char* buf, int bz);
+int ReadSaveFile(char* buf, int bz);
+int WriteSaveFile(char* buf, int bz);
 char CharInput(const char* prompt);
 

@@ -127,15 +127,28 @@ void Intro()
     Output(INTRO_TEXT);
 }
 
-
-int ReadSaveFile(const char* name, char* buf, int bz)
+const char* getFileName()
 {
-    return readFile(name, buf, bz);
+    static char savename[16];
+    static char* f = savename;
+    
+    if (!*f)
+    {
+        f = CmdLine;
+        if (!f) f = "scott";
+        strcat(strcpy(savename, f), ".sav");
+    }
+    return savename;
 }
 
-int WriteSaveFile(const char* name, char* buf, int bz)
+int ReadSaveFile(char* buf, int bz)
 {
-    return writeFile(name, buf, bz);
+    return readFile(getFileName(), buf, bz);
+}
+
+int WriteSaveFile(char* buf, int bz)
+{
+    return writeFile(getFileName(), buf, bz);
 }
 
 

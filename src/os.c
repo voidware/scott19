@@ -62,6 +62,8 @@ uchar TRSUppercaseOutput;
 uchar TRSMemory;
 uchar* TRSMemoryFail;
 
+// command line used 
+char* CmdLine;
 
 // random number seed
 static uint seed;
@@ -332,32 +334,15 @@ static void setOFLAGS(uchar v)
     __endasm;
 }
 
-#if 0
-static void setM4Map1()
-{
-    // switch to config 4; ram + ram
-    // this is the normal state for DOS
-    if (useSVC)
-    {
-        disableInterrupts();
-        outPort(0x84, 0x87); // M4 map 4, 80cols
-        setOFLAGS(0x87);
-        enableInterrupts();
-    }
-}
-#endif
-
 static void setM4Map2()
 {
     // switch to config 3; ram + ram + KB + VIDEO
     // this is the mode we will run in
-    if (useSVC)
-    {
-        disableInterrupts();
-        outPort(0x84, 0x86); // M4 map 3, 80cols
-        setOFLAGS(0x86);
-        enableInterrupts();
-    }
+    
+    disableInterrupts();
+    outPort(0x84, 0x86); // M4 map 3, 80cols
+    setOFLAGS(0x86);
+    enableInterrupts();
 }
 
 static uchar testBlock(uchar a)
@@ -453,12 +438,16 @@ static const char keyMatrix[] =
     'Z', 'Z', 'Z', 'Z', 'Z', 'Z', 'Z', 'Z', 
 };
 
-static uchar readKeyRowCol(uchar* row, uchar* col)
+static uchar keyRow = 7;
+static uchar keyCol;
+static uchar keyHold;
+
+static uchar readKeyRowCol()
 {
     uchar r = 1;
     uchar i;
     uchar hit = 0;
-    
+
     static uchar kbrows[8];
 
     for (i = 0; i < 8; ++i)
@@ -471,19 +460,21 @@ static uchar readKeyRowCol(uchar* row, uchar* col)
         if (t)
         {
             kbrows[i] = v;
+            keyHold = 0;
 
             // press not release            
-            if (v & t)
+            if (!hit && (v & t))
             {
                 hit = 1;
-                
-                *row = i;
-                *col = 0;
+
+                keyRow = i;
+                keyCol = 0;
+                keyHold = 1;
                 
                 while (t > 1)
                 {
                     t >>= 1;
-                    ++*col;
+                    ++keyCol;
                 }
             }
         }
@@ -493,19 +484,35 @@ static uchar readKeyRowCol(uchar* row, uchar* col)
 }
 
 
-char scanKey()
+char scanKeyMatrix(char hold)
 {
     // return key if pressed or 0
-    uchar row, col;
 
     // ignore shift & control
-    return (readKeyRowCol(&row, &col) && row != 7) ? keyMatrix[row*8 + col] : 0;
+    char c = 0;
+    uchar hit;
+    
+    hit = readKeyRowCol();
+
+    if (keyHold)
+    {
+        if (keyRow != 7)
+        {
+            c = keyMatrix[keyRow*8 + keyCol];
+            if (!hit && hold != c)
+            {
+                keyHold = 0;
+                c = 0;
+            }
+        }
+    }
+    
+    return c;
 }
 
-#else // IMPLEMENT_SCAN
+#endif 
 
-// otherwise call the ROM to scan a key
-
+// call the ROM to scan a key
 char scanKey()
 {
     // return key pressed or 0 if none
@@ -542,8 +549,6 @@ static void dsp4(char c)
         rst  0x28
     __endasm;
 }
-
-#endif // IMPLEMENT_SCAN
 
 static uchar keyIdleState;
 static IdleHandler idleHandler;
@@ -796,7 +801,7 @@ typedef void (*Emitter)(char);
 static void _printf_simple(Emitter e, const char* f, va_list args)
 {
     // handles:
-    // %d, %x, %s, %ld
+    // %c, %d, %x, %s, %ld, with field width
     for (;;)
     {
         char c = *f++;
@@ -806,6 +811,16 @@ static void _printf_simple(Emitter e, const char* f, va_list args)
         {
             char buf[33];
             char* s = 0;
+            char width = 0;
+            
+            if (isdigit(*f))
+            {
+                width = atoi(f);
+                do
+                {
+                    ++f;
+                } while (isdigit(*f));
+            }
             
             c = *f++;
             if (!c) break;
@@ -829,11 +844,24 @@ static void _printf_simple(Emitter e, const char* f, va_list args)
                 _ltoa(va_arg(args, long), buf, 10);  // STDCC extention
                 s = buf;
                 break;
+            case 'c':
+                buf[0] = va_arg(args, int);
+                buf[1] = 0;
+                s = buf;
+                break;
             }
 
             if (s)
             {
-                while (*s) (*e)(*s++);
+                while (*s)
+                {
+                    (*e)(*s++);
+                    --width;
+                }
+
+                // pad to width if any
+                while (width > 0) { --width; (*e)(' '); }
+                
                 continue;
             }
         }
@@ -929,7 +957,7 @@ void initModel()
         NewStack = (uchar*)0xF400; 
         if (NewStack > h) NewStack = h;
 
-        //clobber_rti();
+        // CmdLine is already setup in crt0 for M4.
     }
     else
     {
@@ -946,11 +974,29 @@ void initModel()
         {
             // convert output to upper case
             TRSUppercaseOutput = 1;
+            
+            CmdLine = COMMAND_LINE_BUF;
         }
+
+        // XX CMDLine M3?
+
     }
 
     // switch interrupts back on now we're done poking around memory
     enableInterrupts();
+
+    // fix the command line buf
+    rp = CmdLine;
+    if (rp)
+    {
+        // just keep the name of the binary
+        while (isalnum(*rp))
+        {
+            *rp = toupper(*rp);
+            ++rp;
+        }
+        *rp = 0;
+    }
 }
 
 void setStack() __naked
@@ -1083,6 +1129,8 @@ static void _fileError(const char* name, uchar r)
 int readFile(const char* name, char* buf, int bz)
 {
     // return number of bytes read into `buf`
+
+    //printf_simple("Reading '%s'\n", name);
     
     int cc = 0;
 
@@ -1113,6 +1161,8 @@ int readFile(const char* name, char* buf, int bz)
 int writeFile(const char* name, char* buf, int bz)
 {
     int cc = 0;
+
+    //printf_simple("Writing '%s' size %d\n", name, bz);
 
     _setFile(name);
 

@@ -116,7 +116,7 @@ static void printStack()
 static void mainloop()
 {
     cls();
-    
+
     printf_simple("TRS-80 Model %d (%dK RAM)\n", (int)TRSModel, (int)TRSMemory);
 
 #ifndef SKIP
@@ -151,6 +151,5 @@ int main()
     setStack();
     mainloop();
     revertStack();
-    
-    return 0;   // need this to ensure call to revert (else jp)
+    return 0;   // need this to ensure call to revertStack above (else jp)
 }

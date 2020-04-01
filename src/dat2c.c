@@ -75,8 +75,8 @@ void LineInput(const char* prompt, char *buf, unsigned char sz)
 
 void emitTopLine(char* s) { Output(s); }
 void Intro() { Output(INTRO_TEXT); }
-int ReadSaveFile(const char* name, char* buf, int bz) { return 0; }
-int WriteSaveFile(const char* name, char* buf, int bz) { return 0; }
+int ReadSaveFile(char* buf, int bz) { return 0; }
+int WriteSaveFile(char* buf, int bz) { return 0; }
 char CharInput(const char* prompt) { return 0; }
 
 FILE* out;

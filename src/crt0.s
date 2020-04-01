@@ -29,13 +29,14 @@
 ;;  contact@voidware.com
 
 
-	.module crt0
-	.globl	_main
-    .globl	l__INITIALIZER
-    .globl	s__INITIALIZER 
-    .globl	s__INITIALIZED
-    .globl	l__DATA
-    .globl	s__DATA
+    .module crt0
+    .globl  _main
+    .globl  l__INITIALIZER
+    .globl  s__INITIALIZER 
+    .globl  s__INITIALIZED
+    .globl  l__DATA
+    .globl  s__DATA
+    .globl  _CmdLine
 
 init:
 
@@ -44,40 +45,46 @@ init:
 
     ;; save the original stack area 
     ld     (_exit+1),sp
-    
+
     ;; Initialise global variables
+    push    bc
     call    gsinit
-	call	_main
+    pop     bc
+    
+    ;; only valid for DOS6
+    ld      (_CmdLine),bc
+
+    call    _main
     jp      _exit  
         
-	;; Ordering of segments for the linker.
-	.area	_CODE
-    .area	_INITIALIZER
-	.area   _GSINIT
-	.area   _GSFINAL
+    ;; Ordering of segments for the linker.
+    .area   _CODE
+    .area   _INITIALIZER
+    .area   _GSINIT
+    .area   _GSFINAL
 
-	.area	_DATA
-    .area	_INITIALIZED
-	.area   _BSS
-	.area   _HEAP
+    .area   _DATA
+    .area   _INITIALIZED
+    .area   _BSS
+    .area   _HEAP
 
-	.area   _CODE
+    .area   _CODE
 
 _exit::
     ld sp, #0                   ; restores stack to original
     ei
     ret
 
-	.area   _GSINIT
+    .area   _GSINIT
 gsinit::
 
-    ld	hl, #s__DATA
-	ld	bc, #l__DATA
+    ld  hl, #s__DATA
+    ld  bc, #l__DATA
         
 .initbss:
-    ld	a, b
-	or	c
-	jr	Z, .initz
+    ld  a, b
+    or  c
+    jr  Z, .initz
     ld      (hl),#0
     inc     hl
     dec     bc

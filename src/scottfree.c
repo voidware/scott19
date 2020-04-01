@@ -593,27 +593,18 @@ void LoadBuf(char* b)
 
 
 
-#define SAVENAME_DEFAULT  "scott.sav"
-
 void SaveGame()
 {
-    const char* name = SAVENAME_DEFAULT;
-    
     char buf[MAX_SAVESIZE];
     int n = SaveBuf(buf, sizeof(buf));
-    WriteSaveFile(name, buf, n);
+    WriteSaveFile(buf, n);
 }
 
 int LoadGame()
 {
-    const char* name = SAVENAME_DEFAULT;
-    //printf("loading game '%s'\n", name);
     char buf[MAX_SAVESIZE];
-    int n = ReadSaveFile(name, buf, MAX_SAVESIZE);
-    if (n > 0)
-    {
-        LoadBuf(buf);
-    }
+    int n = ReadSaveFile(buf, MAX_SAVESIZE);
+    if (n > 0) LoadBuf(buf);
     return n;
 }
 
