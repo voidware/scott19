@@ -56,9 +56,8 @@ typedef int int16;
 #define HIGH32K 0xBFFF
 #define HIGH16K 0x7FFF
 
-// not valid for M4
-#define COMMAND_LINE_BUF ((char*)0x4318)
-
+#define COMMAND_LINE_BUF_M1 ((char*)0x4318)
+#define COMMAND_LINE_BUF_M3 ((char*)0x4225)
 
 // row 0..7
 #define KBBASE ((uchar*)0x3800)

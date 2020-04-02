@@ -135,8 +135,7 @@ const char* getFileName()
     if (!*f)
     {
         f = CmdLine;
-        if (!f) f = "scott";
-        strcat(strcpy(savename, f), ".sav");
+        strcat(strcpy(savename, f), ".SAV");
     }
     return savename;
 }

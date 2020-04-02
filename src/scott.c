@@ -39,7 +39,7 @@
 #include "sglue.h"
 
 // by-pass RAM test
-#define SKIPxx
+#define SKIPx
 
 jmp_buf main_env;
 
@@ -118,7 +118,7 @@ static void mainloop()
     cls();
 
     printf_simple("TRS-80 Model %d (%dK RAM)\n", (int)TRSModel, (int)TRSMemory);
-
+    
 #ifndef SKIP
     // When you run this on a real TRS-80, you'll thank this RAM test!
     peformRAMTest();

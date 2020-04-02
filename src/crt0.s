@@ -51,7 +51,7 @@ init:
     call    gsinit
     pop     bc
     
-    ;; only valid for DOS6
+    ;; only valid for M4
     ld      (_CmdLine),bc
 
     call    _main

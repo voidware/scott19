@@ -969,16 +969,15 @@ void initModel()
             if (!ramAt(rp)) break;
         }
         NewStack = rp;
+        CmdLine = COMMAND_LINE_BUF_M3;
 
         if (TRSModel <= 2)
         {
             // convert output to upper case
             TRSUppercaseOutput = 1;
             
-            CmdLine = COMMAND_LINE_BUF;
+            CmdLine = COMMAND_LINE_BUF_M1;
         }
-
-        // XX CMDLine M3?
 
     }
 
@@ -987,16 +986,14 @@ void initModel()
 
     // fix the command line buf
     rp = CmdLine;
-    if (rp)
+    
+    // just keep the name of the binary
+    while (isalnum(*rp))
     {
-        // just keep the name of the binary
-        while (isalnum(*rp))
-        {
-            *rp = toupper(*rp);
-            ++rp;
-        }
-        *rp = 0;
+        *rp = toupper(*rp);
+        ++rp;
     }
+    *rp = 0;
 }
 
 void setStack() __naked
