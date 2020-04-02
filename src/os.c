@@ -415,16 +415,17 @@ static uchar getModel()
     return m;
 }
 
-/*
 static void setSpeed(uchar fast)
 {
     if (useSVC)
     {
         // M4 runs at 2.02752 or 4.05504 MHz
-        outPort(0xec, fast ? 0x40 : 0);
+        unsigned char v = inPort(0xff);
+        v &= 0x3f; // drop speed bit and undefined high bit.
+        if (fast) v |= 0x40;
+        outPort(0xec, v);
     }
 }
-*/
 
 #ifdef IMPLEMENT_SCAN
 
@@ -951,9 +952,7 @@ void initModel()
         dsp4(0x0f);
 
         setM4Map2();
-
-        // no need M4 already set to fast
-        //setSpeed(1); // fast!
+        setSpeed(1); // ensure we're in fast mode!
 
         TRSMemory = 64;
 
