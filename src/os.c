@@ -340,8 +340,8 @@ static void setM4Map2()
     // this is the mode we will run in
     
     disableInterrupts();
-    outPort(0x84, 0x86); // M4 map 3, 80cols
-    setOFLAGS(0x86);
+    outPort(0x84, 0x86); // M4 map (1,0), 80cols
+    setOFLAGS(0x86); // tell dos 
     enableInterrupts();
 }
 
@@ -415,6 +415,7 @@ static uchar getModel()
     return m;
 }
 
+/*
 static void setSpeed(uchar fast)
 {
     if (useSVC)
@@ -423,6 +424,7 @@ static void setSpeed(uchar fast)
         outPort(0xec, fast ? 0x40 : 0);
     }
 }
+*/
 
 #ifdef IMPLEMENT_SCAN
 
@@ -949,7 +951,9 @@ void initModel()
         dsp4(0x0f);
 
         setM4Map2();
-        setSpeed(1); // fast!
+
+        // no need M4 already set to fast
+        //setSpeed(1); // fast!
 
         TRSMemory = 64;
 
@@ -1159,10 +1163,9 @@ int writeFile(const char* name, char* buf, int bz)
 {
     int cc = 0;
 
-    //printf_simple("Writing '%s' size %d\n", name, bz);
-
+    // printf_simple("Writing '%s' size %d\n", name, bz);
+    
     _setFile(name);
-
     uchar r = fopen(fileIO);
     while (!r && bz)
     {
@@ -1172,7 +1175,6 @@ int writeFile(const char* name, char* buf, int bz)
     }
 
     fclose(fileIO);
-
     if (r) _fileError(name, r);
     return cc;    
 }
