@@ -68,6 +68,9 @@ unsigned int rand16();
 uint randn(uint n); // 16 bit version
 uchar randc(uchar n); // 8 bit version
 
+void setM4Map3();
+void setM4Map4();
+
 extern uchar TRSModel;
 extern uchar TRSMemory;
 extern uchar* TRSMemoryFail;

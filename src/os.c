@@ -334,15 +334,28 @@ static void setOFLAGS(uchar v)
     __endasm;
 }
 
-static void setM4Map2()
+static void setM4Map(uchar v)
+{
+    if (useSVC) // M4 only.
+    {
+        disableInterrupts();
+        outPort(0x84, v);
+        setOFLAGS(v); // tell dos 
+        enableInterrupts();
+    }
+}
+
+void setM4Map3()
 {
     // switch to config 3; ram + ram + KB + VIDEO
     // this is the mode we will run in
-    
-    disableInterrupts();
-    outPort(0x84, 0x86); // M4 map (1,0), 80cols
-    setOFLAGS(0x86); // tell dos 
-    enableInterrupts();
+    setM4Map(0x86);
+}
+
+void setM4Map4()
+{
+    // revert M4 to normal system mem map and tell DOS
+    setM4Map(0x87);
 }
 
 static uchar testBlock(uchar a)
@@ -386,10 +399,6 @@ static uchar getModel()
 {
     uchar m = 1;
     
-    // attempt to change to M4 bank 1, which maps RAM over 14K ROM
-    // will work if we _are_ M4.
-    //outPort(0x84, 1); 
-
     // if we have RAM, then M4
     if (ramAt((uchar*)0x2000))
     {
@@ -951,7 +960,7 @@ void initModel()
         // switch off cursor
         dsp4(0x0f);
 
-        setM4Map2();
+        setM4Map3();
         setSpeed(1); // ensure we're in fast mode!
 
         TRSMemory = 64;

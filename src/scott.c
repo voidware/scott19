@@ -39,7 +39,7 @@
 #include "sglue.h"
 
 // by-pass RAM test
-#define SKIPx
+#define SKIPxx
 
 jmp_buf main_env;
 
@@ -151,5 +151,6 @@ int main()
     setStack();
     mainloop();
     revertStack();
+    setM4Map4();
     return 0;   // need this to ensure call to revertStack above (else jp)
 }
