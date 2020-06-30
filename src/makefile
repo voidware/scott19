@@ -47,6 +47,7 @@ OBJS = \
 	./dat2c $<
 
 
+#NOTE: if you manually "make whatever", be sure to make clean first.
 all: adv05.dsk
 
 # make scott
@@ -79,6 +80,10 @@ adv04.ihx : adv04.dat.h $(OBJS) Makefile
 
 adv05.ihx : DEFS += -DGAME="adv05.dat.h"
 adv05.ihx : adv05.dat.h $(OBJS) Makefile
+	$(LD) $(LDFLAGS) -i $@ $(OBJS)
+
+gking.ihx : DEFS += -DGAME="gking.dat.h"
+gking.ihx : gking.dat.h $(OBJS) Makefile
 	$(LD) $(LDFLAGS) -i $@ $(OBJS)
 
 

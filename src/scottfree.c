@@ -468,7 +468,7 @@ void GetInput(uchar* vb, uchar* no)
                 case 'U':strcpy(verb,"UP");break;
                 case 'D':strcpy(verb,"DOWN");break;
                 /* Brian Howarth interpreter also supports this */
-                case 'I':strcpy(verb,"INV");break;
+                case 'I':strcpy(verb,"INVE");break;
             }
         }
         

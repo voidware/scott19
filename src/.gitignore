@@ -1,0 +1,12 @@
+*.ihx
+*.lst
+*.rel
+*.noi
+*.map
+*.asm
+*.sym
+*.pdb
+*.ilk
+*.dat.h
+*.obj
+*.o

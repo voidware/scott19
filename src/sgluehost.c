@@ -38,6 +38,10 @@
 extern void LoadDatabase(FILE *f, int loud);
 extern void LoadGame(char *name);
 
+// stubs
+int WriteSaveFile(char* buf, int bz) { return 0; }
+int ReadSaveFile(char* buf, int bz) { return 0; }
+
 void Output(const char* b)
 {
     char c;
@@ -88,6 +92,12 @@ void LineInput(const char* prompt, char *buf, unsigned char sz)
 
 void emitTopLine(char* s) { Output(s); }
 void Intro() { Output(INTRO_TEXT); }
+
+char CharInput(const char* prompt)
+{
+    Output(prompt);
+    return getchar();
+}
 
 int main(int argc, char *argv[])
 {
