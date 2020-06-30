@@ -42,6 +42,19 @@ Example, to run on model III, under DOS
 
 `..\emu\sdltrs -model 3 -romfile3 ../emu/model3.rom -scale 2 -disk0 "../emu/ld3-531.dsk" -disk1 adv05.dsk -foreground 0x07e214`
 
+## Ghostking
+
+Run from `src` directory with (windows)
+
+`godos2 prebuilt\gking`
+
+or as command:
+
+`..\emu\trs80gp -m1 -50 -ld -d1 prebuilt/gking.dsk`
+
+
+
+
 
 
 
