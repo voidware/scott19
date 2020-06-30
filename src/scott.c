@@ -55,7 +55,7 @@ static void peformRAMTest()
     a = 0;
     do
     {
-        uchar b = a<<2;
+`        uchar b = a<<2;
         ++a;
         if (TRSMemory < 64) b += 0x40; 
 

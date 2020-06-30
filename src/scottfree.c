@@ -65,6 +65,22 @@ uchar Width = 64;
 unsigned long BitFlags=0;   /* Might be >32 flags - I haven't seen >32 yet */
 static char startSave[MAX_SAVESIZE];
 
+static uchar bfTest(uchar b)
+{
+    uchar v = 0;
+    if (BitFlags & (1UL<<b)) v = 1;
+    return v;
+}
+
+static void bfSet(uchar b)
+{
+    BitFlags |= (1UL<<b);
+}
+
+static void bfClear(uchar b)
+{
+    BitFlags &= ~(1UL<<b);
+}
 
 static uchar WordMatch(const char* s1, const char* s2)
 {
@@ -347,7 +363,7 @@ void Look()
     
     ClearScreen();
 
-    if((BitFlags&(1<<DARKBIT)) && Items[LIGHT_SOURCE].Location!= CARRIED
+    if(bfTest(DARKBIT) && Items[LIGHT_SOURCE].Location!= CARRIED
                 && Items[LIGHT_SOURCE].Location!= MyLoc)
     {
 #ifdef YOUARE
@@ -656,11 +672,13 @@ int PerformLine(int ct)
                     return(0);
                 break;
             case 8:
-                if((BitFlags&(1<<dv))==0)
+                //if((BitFlags&(1U<<dv))==0)
+                if(!bfTest(dv))
                     return(0);
                 break;
             case 9:
-                if(BitFlags&(1<<dv))
+                //if(BitFlags&(1U<<dv))
+                if(bfTest(dv))
                     return(0);
                 break;
             case 10:
@@ -759,13 +777,16 @@ int PerformLine(int ct)
                 Items[param[pptr++]].Location=0;
                 break;
             case 56:
-                BitFlags|=1<<DARKBIT;
+                //BitFlags|=(1U<<DARKBIT);
+                bfSet(DARKBIT);
                 break;
             case 57:
-                BitFlags&=~(1<<DARKBIT);
+                //BitFlags&=~(1U<<DARKBIT);
+                bfClear(DARKBIT);
                 break;
             case 58:
-                BitFlags|=(1<<param[pptr++]);
+                //BitFlags|=(1U<<param[pptr++]);
+                bfSet(param[pptr++]);
                 break;
             case 59:
                 if(Items[param[pptr]].Location==MyLoc)
@@ -773,7 +794,8 @@ int PerformLine(int ct)
                 Items[param[pptr++]].Location=0;
                 break;
             case 60:
-                BitFlags&=~(1<<param[pptr++]);
+                //BitFlags&=~(1U<<param[pptr++]);
+                bfClear(param[pptr++]);
                 break;
             case 61:
                 //if(Options&YOUARE)
@@ -782,7 +804,8 @@ int PerformLine(int ct)
                 #else
                     Output("I am dead.\n");
                 #endif
-                BitFlags&=~(1<<DARKBIT);
+                //BitFlags&=~(1U<<DARKBIT);
+                bfClear(DARKBIT);
                 MyLoc=GameHeader.NumRooms;/* It seems to be what the code says! */
                 Look();
                 break;
@@ -853,17 +876,20 @@ doneit:             Output("The game is now over.\n");
                 break;
             }
             case 67:
-                BitFlags|=(1<<0);
+                //BitFlags|=(1U<<0);
+                bfSet(0);
                 break;
             case 68:
-                BitFlags&=~(1<<0);
+                //BitFlags&=~(1U<<0);
+                bfClear(0);
                 break;
             case 69:
                 GameHeader.LightTime=LightRefill;
                 if(Items[LIGHT_SOURCE].Location==MyLoc)
                     Redraw=1;
                 Items[LIGHT_SOURCE].Location=CARRIED;
-                BitFlags&=~(1L<<LIGHTOUTBIT);
+                //BitFlags&=~(1L<<LIGHTOUTBIT);
+                bfClear(LIGHTOUTBIT);
                 break;
             case 70:
                 /* not sure what this does.
@@ -997,7 +1023,7 @@ doneit:             Output("The game is now over.\n");
 int PerformActions(uchar vb, uchar no)
 {
     static int disable_sysfunc=0;   /* Recursion lock */
-    int d=BitFlags&(1<<DARKBIT);
+    uchar d = bfTest(DARKBIT);
     
     int ct;
     int fl;
@@ -1255,7 +1281,8 @@ void rungame()
             GameHeader.LightTime--;
             if(GameHeader.LightTime<1)
             {
-                BitFlags|=(1L<<LIGHTOUTBIT);
+                //BitFlags|=(1L<<LIGHTOUTBIT);
+                bfSet(LIGHTOUTBIT);
                 if(Items[LIGHT_SOURCE].Location==CARRIED ||
                     Items[LIGHT_SOURCE].Location==MyLoc)
                 {
