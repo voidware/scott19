@@ -42,6 +42,7 @@ extern void LoadGame(char *name);
 
 void Output(const char* b) { printf(b); }
 void OutputNumber(int v) { printf("%d", v); }
+void Pause() {}
 
 void Exit()
 {

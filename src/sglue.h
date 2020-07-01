@@ -50,4 +50,6 @@ void Intro();
 int ReadSaveFile(char* buf, int bz);
 int WriteSaveFile(char* buf, int bz);
 char CharInput(const char* prompt);
+void Pause();
+
 

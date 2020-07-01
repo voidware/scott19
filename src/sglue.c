@@ -150,6 +150,12 @@ int WriteSaveFile(char* buf, int bz)
     return writeFile(getFileName(), buf, bz);
 }
 
+void Pause()
+{
+    pause();
+    pause();
+}
+
 
 
 

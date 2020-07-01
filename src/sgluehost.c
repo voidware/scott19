@@ -41,6 +41,7 @@ extern void LoadGame(char *name);
 // stubs
 int WriteSaveFile(char* buf, int bz) { return 0; }
 int ReadSaveFile(char* buf, int bz) { return 0; }
+void Pause() {}
 
 void Output(const char* b)
 {

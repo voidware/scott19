@@ -67,19 +67,36 @@ static char startSave[MAX_SAVESIZE];
 
 static uchar bfTest(uchar b)
 {
-    uchar v = 0;
-    if (BitFlags & (1UL<<b)) v = 1;
-    return v;
+    return (BitFlags >> b) & 1U;
 }
 
 static void bfSet(uchar b)
 {
+#if 0   
     BitFlags |= (1UL<<b);
+#else
+    // XX version does not use 32 bit operations
+    // but ASSUMEs little endian data.
+    uchar* p = (uchar*)&BitFlags;
+    uchar i = b;
+    while (i >= 8) { i -= 8; ++p; }
+    *p |= 1U<<i;
+#endif    
 }
 
 static void bfClear(uchar b)
 {
+#if 0    
     BitFlags &= ~(1UL<<b);
+#else    
+    // XX version does not use 32 bit operations
+    // but ASSUMEs little endian data.
+    uchar* p = (uchar*)&BitFlags;
+    uchar i = b;
+    while (i >= 8) { i -= 8; ++p; }
+    *p &= ~(1U<<i);
+#endif    
+    
 }
 
 static uchar WordMatch(const char* s1, const char* s2)
@@ -452,8 +469,8 @@ uchar WhichWord(char *word, char **list)
 
 static const char* getword(char* buf, const char* s)
 {
-    while (isspace(*s)) ++s;
-    while (*s && !isspace(*s)) *buf++ = *s++;
+    while (*s == ' ') ++s;
+    while (*s && *s != ' ') *buf++ = *s++;
     *buf = 0;
     return s;
 }
@@ -554,7 +571,7 @@ static void skipD()
 
 static void skipS()
 {
-    while (isspace(*inb)) ++inb;
+    while (*inb == ' ') ++inb;
 }
 
 static int scanD()
@@ -828,6 +845,7 @@ doneit:             Output("The game is now over.\n");
                 break;
             case 65:
             {
+                // score
                 int ct;
                 int n=0;
                 for (ct = 0; ct<=GameHeader.NumItems; ++ct)
@@ -854,6 +872,7 @@ doneit:             Output("The game is now over.\n");
             }
             case 66:
             {
+                // inventory
                 int ct;
                 uchar f=0;
                 
@@ -884,6 +903,7 @@ doneit:             Output("The game is now over.\n");
                 bfClear(0);
                 break;
             case 69:
+                // refill lamp
                 GameHeader.LightTime=LightRefill;
                 if(Items[LIGHT_SOURCE].Location==MyLoc)
                     Redraw=1;
@@ -904,6 +924,7 @@ doneit:             Output("The game is now over.\n");
                 break;
             case 72:
             {
+                // swap
                 int i1=param[pptr++];
                 int i2=param[pptr++];
                 int t=Items[i1].Location;
@@ -917,12 +938,14 @@ doneit:             Output("The game is now over.\n");
                 continuation=1;
                 break;
             case 74:
+                // superget
                 if(Items[param[pptr]].Location==MyLoc)
                     Redraw=1;
                 Items[param[pptr++]].Location= CARRIED;
                 break;
             case 75:
             {
+                // put_with
                 int i1,i2;
                 i1=param[pptr++];
                 i2=param[pptr++];
@@ -937,17 +960,21 @@ doneit:             Output("The game is now over.\n");
                 Look();
                 break;
             case 77:
+                // dec
                 if(CurrentCounter>=0)
                     CurrentCounter--;
                 break;
             case 78:
+                //  print counter
                 OutputNumber(CurrentCounter);
                 break;
             case 79:
+                // set counter
                 CurrentCounter=param[pptr++];
                 break;
             case 80:
             {
+                // swap room
                 int t=MyLoc;
                 MyLoc=SavedRoom;
                 SavedRoom=t;
@@ -956,6 +983,8 @@ doneit:             Output("The game is now over.\n");
             }
             case 81:
             {
+                // select counter
+                
                 /* This is somewhat guessed. Claymorgue always
                    seems to do select counter n, thing, select counter n,
                    but uses one value that always seems to exist. Trying
@@ -967,9 +996,11 @@ doneit:             Output("The game is now over.\n");
                 break;
             }
             case 82:
+                // add to counter
                 CurrentCounter+=param[pptr++];
                 break;
             case 83:
+                // subtract from counter
                 CurrentCounter-=param[pptr++];
                 if(CurrentCounter< -1)
                     CurrentCounter= -1;
@@ -977,9 +1008,11 @@ doneit:             Output("The game is now over.\n");
                    know if there is a maximum value to limit too */
                 break;
             case 84:
+                // print noun
                 Output(NounText);
                 break;
             case 85:
+                // print noun + newline
                 Output(NounText);
                 Output("\n");
                 break;
@@ -988,6 +1021,7 @@ doneit:             Output("The game is now over.\n");
                 break;
             case 87:
             {
+                // swap specific room
                 /* Changed this to swap location<->roomflag[x]
                    not roomflag 0 and x */
                 int p=param[pptr++];
@@ -998,16 +1032,17 @@ doneit:             Output("The game is now over.\n");
                 break;
             }
             case 88:
+                // pause
                 //wrefresh(Top);
                 //wrefresh(Bottom);
                 //sleep(2); /* DOC's say 2 seconds. Spectrum times at 1.5 */
-                // XXX need to add a delay here
+                Pause();
                 break;
             case 89:
                 pptr++;
                 /* SAGA draw picture n */
                 /* Spectrum Seas of Blood - start combat ? */
-                /* Poking this into older spectrum games causes a crash */
+                /* P oking this into older spectrum games causes a crash */
                 break;
             default:
                 printf("ERROR: Unknown action %d [Param begins %d %d]\n",
